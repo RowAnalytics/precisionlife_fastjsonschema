@@ -12,6 +12,8 @@ exc = JsonSchemaException('data must be array', value='{data}', name='data', def
     ('abc', exc),
     ([], []),
     ([1, 'a', True], [1, 'a', True]),
+    ((1, 'a', True), (1, 'a', True)),
+    (range(5), range(5)),
     ({}, exc),
 ])
 def test_array(asserter, value, expected):
