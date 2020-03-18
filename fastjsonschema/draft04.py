@@ -11,8 +11,8 @@ JSON_TYPE_TO_PYTHON_TYPE = {
     'number': 'int, float',
     'integer': 'int',
     'string': 'str',
-    'array': 'list, tuple',
-    'object': 'dict',
+    'array': 'collections.abc.Sequence',
+    'object': 'collections.abc.Mapping',
 }
 
 DOLLAR_FINDER = re.compile(r"(?<!\\)\$")  # Finds any un-escaped $ (including inside []-sets)
@@ -88,6 +88,8 @@ class CodeGeneratorDraft04(CodeGenerator):
         extra = ''
         if ('number' in types or 'integer' in types) and 'boolean' not in types:
             extra = ' or isinstance({variable}, bool)'.format(variable=self._variable)
+        if ('array' in types) and ('string' not in types):
+            extra = ' or isinstance({variable}, str)'.format(variable=self._variable)
 
         with self.l('if not isinstance({variable}, ({})){}:', python_types, extra):
             self.exc('{name} must be {}', ' or '.join(types), rule='type')
@@ -379,7 +381,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             self.create_variable_with_length()
             if items_definition is False:
                 with self.l('if {variable}:'):
-                    self.exc('{name} must not be there', rule='items')
+                    self.exc('{name} must be empty, because items definition is False', rule='items')
             elif isinstance(items_definition, list):
                 for idx, item_definition in enumerate(items_definition):
                     with self.l('if {variable}_len > {}:', idx):

@@ -1,3 +1,4 @@
+import collections
 from collections import OrderedDict
 import re
 
@@ -82,6 +83,7 @@ class CodeGenerator:
         return dict(
             **self._extra_imports_objects,
             REGEX_PATTERNS=self._compile_regexps,
+            collections=collections,
             re=re,
             JsonSchemaException=JsonSchemaException,
         )
@@ -96,6 +98,7 @@ class CodeGenerator:
 
         if not self._compile_regexps:
             return '\n'.join(self._extra_imports_lines + [
+                'import collections',
                 'from fastjsonschema import JsonSchemaException',
                 '',
                 '',
@@ -103,6 +106,7 @@ class CodeGenerator:
         regexs = ['"{}": re.compile(r"{}")'.format(key, value.pattern) for key, value in self._compile_regexps.items()]
         return '\n'.join(self._extra_imports_lines + [
             'import re',
+            'import collections',
             'from fastjsonschema import JsonSchemaException',
             '',
             '',
@@ -287,7 +291,7 @@ class CodeGenerator:
         if variable_name in self._variables:
             return
         self._variables.add(variable_name)
-        self.l('{variable}_is_list = isinstance({variable}, (list, tuple))')
+        self.l('{variable}_is_list = isinstance({variable}, collections.abc.Sequence) and not isinstance({variable}, str)')
 
     def create_variable_is_dict(self):
         """
@@ -298,4 +302,4 @@ class CodeGenerator:
         if variable_name in self._variables:
             return
         self._variables.add(variable_name)
-        self.l('{variable}_is_dict = isinstance({variable}, dict)')
+        self.l('{variable}_is_dict = isinstance({variable}, collections.abc.Mapping)')
