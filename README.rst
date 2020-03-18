@@ -21,6 +21,9 @@ This is a modification of fastjsonschema done for the following purposes:
     all more specific errors are dropped.
     (see: https://github.com/horejsek/python-fastjsonschema/issues/72)
 
+* introducing concept of "identification fields",
+  values of those fields, for every object on the path to the root, will be printed when reporting errors,
+  this way it will be easier to identify which object failed validation, especially within large arrays.
 * When unexpected additional fields are present those should be enumerated in error message.
   (see: https://github.com/horejsek/python-fastjsonschema/issues/84)
 * Make the store for cached documents overridable.
