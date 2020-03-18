@@ -106,7 +106,7 @@ def validate(definition, data, handlers={}, formats={}):
 
 
 # pylint: disable=redefined-builtin,dangerous-default-value,exec-used
-def compile(definition, handlers={}, formats={}):
+def compile(definition, handlers={}, formats={}, **resolver_kwargs):
     """
     Generates validation function for validating JSON schema passed in ``definition``.
     Example:
@@ -163,7 +163,7 @@ def compile(definition, handlers={}, formats={}):
     Exception :any:`JsonSchemaException` is raised from generated funtion when
     validation fails (data do not follow the definition).
     """
-    resolver, code_generator = _factory(definition, handlers, formats)
+    resolver, code_generator = _factory(definition, handlers, formats, **resolver_kwargs)
     global_state = code_generator.global_state
     # Do not pass local state so it can recursively call itself.
     exec(code_generator.func_code, global_state)
@@ -171,7 +171,7 @@ def compile(definition, handlers={}, formats={}):
 
 
 # pylint: disable=dangerous-default-value
-def compile_to_code(definition, handlers={}, formats={}):
+def compile_to_code(definition, handlers={}, formats={}, **resolver_kwargs):
     """
     Generates validation code for validating JSON schema passed in ``definition``.
     Example:
@@ -194,7 +194,7 @@ def compile_to_code(definition, handlers={}, formats={}):
     Exception :any:`JsonSchemaDefinitionException` is raised when generating the
     code fails (bad definition).
     """
-    _, code_generator = _factory(definition, handlers, formats)
+    _, code_generator = _factory(definition, handlers, formats, **resolver_kwargs)
     return (
         'VERSION = "' + VERSION + '"\n' +
         code_generator.global_state_code + '\n' +
@@ -202,8 +202,8 @@ def compile_to_code(definition, handlers={}, formats={}):
     )
 
 
-def _factory(definition, handlers, formats={}):
-    resolver = RefResolver.from_schema(definition, handlers=handlers)
+def _factory(definition, handlers, formats={}, **resolver_kwargs):
+    resolver = RefResolver.from_schema(definition, handlers=handlers, **resolver_kwargs)
     code_generator = _get_code_generator_class(definition)(definition, resolver=resolver, formats=formats)
     return resolver, code_generator
 
