@@ -192,7 +192,7 @@ class CodeGenerator:
         self._validation_functions_done.add(uri)
         self.l('')
         with self._resolver.resolving(uri) as definition:
-            with self.l('def {}(data, *, root_object=None, root_path=[]):', name):
+            with self.l('def {}(data, *, root_object=None, root_path=[], special_fields_extractor=None):', name):
                 self.generate_func_code_block(definition, 'data', [], clear_variables=True)
                 self.l('return data')
 
@@ -246,7 +246,7 @@ class CodeGenerator:
             if uri not in self._validation_functions_done:
                 self._needed_validation_functions[uri] = name
             # call validation function, with current full name as a root_path
-            self.l('{}({variable}, root_object=(data if root_object is None else root_object), root_path=root_path + {path})', name, path=prepare_path(self._variable_path))
+            self.l('{}({variable}, root_object=(data if root_object is None else root_object), root_path=root_path + {path}, special_fields_extractor=special_fields_extractor)', name, path=prepare_path(self._variable_path))
 
 
     # pylint: disable=invalid-name

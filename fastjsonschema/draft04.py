@@ -458,6 +458,7 @@ class CodeGeneratorDraft04(CodeGenerator):
         self.create_variable_is_dict()
         with self.l('if {variable}_is_dict:'):
             self.create_variable_keys()
+            self.l('{variable}_tag_fields, {variable}_discriminator_fields, {variable}_identification_fields = special_fields_extractor({variable}) if special_fields_extractor else ([], [], [])')
             for key, prop_definition in self._definition['properties'].items():
                 key_name = re.sub(r'($[^a-zA-Z]|[^a-zA-Z0-9])', '', key)
                 if not isinstance(prop_definition, (dict, bool)):

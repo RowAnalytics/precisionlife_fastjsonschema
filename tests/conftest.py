@@ -15,7 +15,7 @@ from fastjsonschema.draft07 import CodeGeneratorDraft07
 
 @pytest.fixture
 def asserter():
-    def f(definition, value, expected, formats={}):
+    def f(definition, value, expected, formats={}, special_fields_extractor=None):
         # When test fails, it will show up code.
         code_generator = CodeGeneratorDraft07(definition, formats=formats)
         print(code_generator.func_code)
@@ -27,7 +27,7 @@ def asserter():
         validator = compile(definition, formats=formats)
         if isinstance(expected, JsonSchemaException):
             with pytest.raises(JsonSchemaException) as exc:
-                validator(value)
+                validator(value, special_fields_extractor=special_fields_extractor)
             assert exc.value.message == expected.message
             assert exc.value.value == (value if expected.value == '{data}' else expected.value)
             assert exc.value.name == expected.name

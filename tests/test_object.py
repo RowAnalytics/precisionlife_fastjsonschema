@@ -202,3 +202,40 @@ def test_full_name_after_ref(asserter, value, expected):
             "prop1": {"$ref": "#/definitions/SomeType"},
         }
     }, value, expected)
+
+
+@pytest.mark.parametrize('value, expected', [
+    ({ "kind": "text", "prop1": { "$print": "a", "str": 1 } }, JsonSchemaException('data<kind=text>.prop1<$print>.str must be string', value=1, name='data<kind=text>.prop1<$print>.str', definition={'type': 'string'}, rule='type')),
+    ({ "kind": "text", "named": { "name": "obj", "str": 1 } }, JsonSchemaException('data<kind=text>.named<name=obj>.str must be string', value=1, name='data<kind=text>.named<name=obj>.str', definition={'type': 'string'}, rule='type')),
+])
+def test_special_fields_reporting(asserter, value, expected):
+    def special_fields_extractor(instance):
+        tag_fields = [field for field in instance.keys() if field.startswith('$')]
+        discriminator_fields = [field for field in instance.keys() if field in ['type', 'kind']]
+        identification_fields = [field for field in instance.keys() if field in ['name']]
+        return tag_fields, discriminator_fields, identification_fields
+
+    asserter({
+        "definitions": {
+            "SomeType": {
+                "type": "object",
+                "properties": {
+                    "$print": {"type": "string"},
+                    "str": {"type": "string"},
+                },
+            },
+            "NamedType": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "str": {"type": "string"},
+                },
+            },
+        },
+        "type": "object",
+        "properties": {
+            "kind": {"type": "string"},
+            "prop1": {"$ref": "#/definitions/SomeType"},
+            "named": {"$ref": "#/definitions/NamedType"},
+        }
+    }, value, expected, special_fields_extractor=special_fields_extractor)
