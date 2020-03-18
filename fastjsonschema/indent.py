@@ -8,7 +8,7 @@ def indent(func):
         line = func(self, line, *args, **kwds)
         # When two blocks have the same condition (such as value has to be dict),
         # do the check only once and keep it under one block.
-        if optimize and last_line == line:
+        if optimize and last_line == line and line != 'try:': # @note "try" is always coupled with either an "else" or "except", and optimizing away nested "try" statements results in bad code gen.
             self._code.pop()
         self._indent_last_line = line
         return Indent(self, line)
