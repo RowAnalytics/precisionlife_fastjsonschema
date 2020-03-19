@@ -13,6 +13,31 @@ def enforce_list(variable):
     return [variable]
 
 
+def prepare_path(path):
+    result = "["
+    for element in path:
+        result += element
+        result += ", "
+    result += "]"
+    return result
+
+
+def render_path(path):
+    result = "data"
+    for element in path:
+        result += ("[{}]" if isinstance(element, int) else ".{}").format(element)
+    return result
+
+
+render_path_func = [
+    'def render_path(path):',
+    '    result = "data"',
+    '    for element in path:',
+    '        result += ("[{}]" if isinstance(element, int) else ".{}").format(element)',
+    '    return result',
+]
+
+
 # pylint: disable=too-many-instance-attributes,too-many-public-methods
 class CodeGenerator:
     """
@@ -42,8 +67,12 @@ class CodeGenerator:
         self._variables = set()
         self._indent = 0
         self._indent_last_line = None
+        # Name of the variable in generated code, that holds object that is being validated.
         self._variable = None
-        self._variable_name = None
+        # Path to this object (list of field names and array indices that were traversed to reach it).
+        # Each element in this list is a piece of code, that evaluated will give the actual path element.
+        # Please note that this path will evaluate successfully only in the scope it is created in (as it may use local variable names).
+        self._variable_path = []
         self._root_definition = definition
         self._definition = None
 
@@ -86,6 +115,7 @@ class CodeGenerator:
             collections=collections,
             re=re,
             JsonSchemaException=JsonSchemaException,
+            render_path=render_path,
         )
 
     @property
@@ -102,6 +132,9 @@ class CodeGenerator:
                 'from fastjsonschema import JsonSchemaException',
                 '',
                 '',
+                '',
+                *render_path_func,
+                '',
             ])
         regexs = ['"{}": re.compile(r"{}")'.format(key, value.pattern) for key, value in self._compile_regexps.items()]
         return '\n'.join(self._extra_imports_lines + [
@@ -113,6 +146,9 @@ class CodeGenerator:
             'REGEX_PATTERNS = {',
             '    ' + ',\n    '.join(regexs),
             '}',
+            '',
+            '',
+            *render_path_func,
             '',
         ])
 
@@ -142,23 +178,23 @@ class CodeGenerator:
         self._validation_functions_done.add(uri)
         self.l('')
         with self._resolver.resolving(uri) as definition:
-            with self.l('def {}(data, *, name_prefix=None):', name):
-                self.generate_func_code_block(definition, 'data', 'data', clear_variables=True)
+            with self.l('def {}(data, *, path_prefix=[]):', name):
+                self.generate_func_code_block(definition, 'data', [], clear_variables=True)
                 self.l('return data')
 
-    def generate_func_code_block(self, definition, variable, variable_name, clear_variables=False):
+    def generate_func_code_block(self, definition, variable, variable_path, clear_variables=False):
         """
         Creates validation rules for current definition.
         """
-        backup = self._definition, self._variable, self._variable_name
-        self._definition, self._variable, self._variable_name = definition, variable, variable_name
+        backup = self._definition, self._variable, self._variable_path
+        self._definition, self._variable, self._variable_path = definition, variable, variable_path
         if clear_variables:
             backup_variables = self._variables
             self._variables = set()
 
         self._generate_func_code_block(definition)
 
-        self._definition, self._variable, self._variable_name = backup
+        self._definition, self._variable, self._variable_path = backup
         if clear_variables:
             self._variables = backup_variables
 
@@ -195,9 +231,8 @@ class CodeGenerator:
             uri = self._resolver.get_uri()
             if uri not in self._validation_functions_done:
                 self._needed_validation_functions[uri] = name
-            # call validation function, with current full name as a name_prefix
-            assert self._variable_name.startswith('data')
-            self.l('{}({variable}, name_prefix=(name_prefix or "data") + "{path}")', name, path=self._variable_name[4:])
+            # call validation function, with current full name as a path_prefix
+            self.l('{}({variable}, path_prefix=path_prefix + {path})', name, path=prepare_path(self._variable_path))
 
 
     # pylint: disable=invalid-name
@@ -205,7 +240,7 @@ class CodeGenerator:
     def l(self, line, *args, **kwds):
         """
         Short-cut of line. Used for inserting line. It's formated with parameters
-        ``variable``, ``variable_name`` (as ``name`` for short-cut), all keys from
+        ``variable``, ``variable_path`` (as ``name`` for short-cut), all keys from
         current JSON schema ``definition`` and also passed arguments in ``args``
         and named ``kwds``.
 
@@ -222,14 +257,7 @@ class CodeGenerator:
         """
         spaces = ' ' * self.INDENT * self._indent
 
-        name = self._variable_name
-        if name:
-            # Add name_prefix to the name when it is being outputted.
-            assert name.startswith('data')
-            name = '" + (name_prefix or "data") + "' + name[4:]
-            if '{' in name:
-                name = name + '".format(**locals()) + "'
-
+        name = '" + render_path(path_prefix + {path}) + "'.format(path=prepare_path(self._variable_path))
 
         context = dict(
             self._definition or {},

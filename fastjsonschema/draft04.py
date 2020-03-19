@@ -127,7 +127,7 @@ class CodeGeneratorDraft04(CodeGenerator):
         Valid values for this definition are 5, 6, 7, ... but not 4 or 'abc' for example.
         """
         for definition_item in self._definition['allOf']:
-            self.generate_func_code_block(definition_item, self._variable, self._variable_name, clear_variables=True)
+            self.generate_func_code_block(definition_item, self._variable, self._variable_path, clear_variables=True)
 
     def generate_any_of(self):
         """
@@ -150,7 +150,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             # When we know it's passing (at least once), we do not need to do another expensive try-except.
             with self.l('if not {variable}_any_of_count:', optimize=False):
                 with self.l('try:', optimize=False):
-                    self.generate_func_code_block(definition_item, self._variable, self._variable_name, clear_variables=True)
+                    self.generate_func_code_block(definition_item, self._variable, self._variable_path, clear_variables=True)
                     self.l('{variable}_any_of_count += 1')
                 self.l('except JsonSchemaException: pass')
 
@@ -178,7 +178,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             # When we know it's failing (one of means exactly once), we do not need to do another expensive try-except.
             with self.l('if {variable}_one_of_count < 2:', optimize=False):
                 with self.l('try:', optimize=False):
-                    self.generate_func_code_block(definition_item, self._variable, self._variable_name, clear_variables=True)
+                    self.generate_func_code_block(definition_item, self._variable, self._variable_path, clear_variables=True)
                     self.l('{variable}_one_of_count += 1')
                 self.l('except JsonSchemaException: pass')
 
@@ -208,7 +208,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 self.exc('{name} must not be valid by not definition', rule='not')
         else:
             with self.l('try:', optimize=False):
-                self.generate_func_code_block(not_definition, self._variable, self._variable_name)
+                self.generate_func_code_block(not_definition, self._variable, self._variable_path)
             self.l('except JsonSchemaException: pass')
             with self.l('else:'):
                 self.exc('{name} must not be valid by not definition', rule='not')
@@ -389,7 +389,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                         self.generate_func_code_block(
                             item_definition,
                             '{}__{}'.format(self._variable, idx),
-                            '{}[{}]'.format(self._variable_name, idx),
+                            self._variable_path + [str(idx)],
                         )
                     if isinstance(item_definition, dict) and 'default' in item_definition:
                         self.l('else: {variable}.append({})', repr(item_definition['default']))
@@ -403,7 +403,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                             self.generate_func_code_block(
                                 self._definition['additionalItems'],
                                 '{}_item'.format(self._variable),
-                                '{}[{{{}_x}}]'.format(self._variable_name, self._variable),
+                                self._variable_path + [self._variable + '_x'],
                             )
             else:
                 if items_definition:
@@ -411,7 +411,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                         self.generate_func_code_block(
                             items_definition,
                             '{}_item'.format(self._variable),
-                            '{}[{{{}_x}}]'.format(self._variable_name, self._variable),
+                            self._variable_path + [self._variable + '_x'],
                         )
 
     def generate_min_properties(self):
@@ -468,7 +468,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                     self.generate_func_code_block(
                         prop_definition,
                         '{}__{}'.format(self._variable, key_name),
-                        '{}.{}'.format(self._variable_name, self.e(key)),
+                        self._variable_path + ['"{}"'.format(self.e(key))],
                         clear_variables=True,
                     )
                 if isinstance(prop_definition, dict) and 'default' in prop_definition:
@@ -501,7 +501,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                         self.generate_func_code_block(
                             definition,
                             '{}_val'.format(self._variable),
-                            '{}.{{{}_key}}'.format(self._variable_name, self._variable),
+                            self._variable_path + [self._variable + '_key'],
                             clear_variables=True,
                         )
 
@@ -535,7 +535,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                         self.generate_func_code_block(
                             add_prop_definition,
                             '{}_value'.format(self._variable),
-                            '{}.{{{}_key}}'.format(self._variable_name, self._variable),
+                            self._variable_path + [self._variable + '_key'],
                         )
             else:
                 with self.l('if {variable}_keys:'):
@@ -573,4 +573,4 @@ class CodeGeneratorDraft04(CodeGenerator):
                             with self.l('if "{}" not in {variable}_keys:', self.e(value)):
                                 self.exc('{name} missing dependency {} for {}', self.e(value), self.e(key), rule='dependencies')
                     else:
-                        self.generate_func_code_block(values, self._variable, self._variable_name, clear_variables=True)
+                        self.generate_func_code_block(values, self._variable, self._variable_path, clear_variables=True)
