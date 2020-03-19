@@ -1,6 +1,7 @@
 import collections
 from collections import OrderedDict
 import re
+import inspect
 
 from .exceptions import JsonSchemaException, JsonSchemaDefinitionException
 from .indent import indent
@@ -14,6 +15,14 @@ def enforce_list(variable):
 
 
 def prepare_path(path):
+    """
+    Returns path as a string that can be evaluated.
+    So for this input: ['1', 'data_x', '"text"']
+    returns: [1, data_x, "text"]
+    :param path:    List of strings, that are code fragments.
+                    Those will be array indexes (stringified), variable names and field names in quotes.
+    :return: String.
+    """
     result = "["
     for element in path:
         result += element
@@ -23,19 +32,21 @@ def prepare_path(path):
 
 
 def render_path(path):
+    """
+    Returns path as a string that can be displayed to the user.
+    So for this input: [1, 'data', 'text']
+    returns: data[1].data.text
+    :param path:    List of strings or ints (actual runtime values, not code fragments).
+                    Ints are array indexes, strings are field names.
+    :return: String.
+    """
     result = "data"
     for element in path:
         result += ("[{}]" if isinstance(element, int) else ".{}").format(element)
     return result
 
 
-render_path_func = [
-    'def render_path(path):',
-    '    result = "data"',
-    '    for element in path:',
-    '        result += ("[{}]" if isinstance(element, int) else ".{}").format(element)',
-    '    return result',
-]
+render_path_source_lines = inspect.getsourcelines(render_path)[0]
 
 
 # pylint: disable=too-many-instance-attributes,too-many-public-methods
@@ -133,7 +144,7 @@ class CodeGenerator:
                 '',
                 '',
                 '',
-                *render_path_func,
+                *render_path_source_lines,
                 '',
             ])
         regexs = ['"{}": re.compile(r"{}")'.format(key, value.pattern) for key, value in self._compile_regexps.items()]
@@ -148,7 +159,7 @@ class CodeGenerator:
             '}',
             '',
             '',
-            *render_path_func,
+            *render_path_source_lines,
             '',
         ])
 
