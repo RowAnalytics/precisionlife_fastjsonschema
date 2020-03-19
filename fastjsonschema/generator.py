@@ -31,7 +31,7 @@ def prepare_path(path):
     return result
 
 
-def render_path(obj, path):
+def render_path(obj, path, special_fields_extractor):
     """
     Returns path as a string that can be displayed to the user.
     So for this input: [1, 'data', 'text']
@@ -39,13 +39,36 @@ def render_path(obj, path):
     :param obj:     Object the path is in.
     :param path:    List of strings or ints (actual runtime values, not code fragments).
                     Ints are array indexes, strings are field names.
+    :param special_fields_extractor: Function that given a Mapping returns (tag_fields, discriminator_fields, identification_fields) - lists of fields in given category.
     :return: String.
     """
-    cur_obj = obj
     result = "data"
+
+    def add_context(o):
+        nonlocal result
+
+        if special_fields_extractor is None:
+            return
+
+        if not isinstance(o, collections.abc.Mapping):
+            return
+
+        tag_fields, discriminator_fields, identification_fields = special_fields_extractor(o)
+        if len(tag_fields) + len(discriminator_fields) + len(identification_fields) == 0:
+            return
+
+        id_fields = discriminator_fields + identification_fields
+        id_data = ["{}={}".format(field, o[field]) for field in id_fields]
+        result += "<"
+        result += ",".join(tag_fields + id_data)
+        result += ">"
+
+    cur_obj = obj
+    add_context(cur_obj)
     for element in path:
         cur_obj = cur_obj[element]
         result += ("[{}]" if isinstance(element, int) else ".{}").format(element)
+        add_context(cur_obj)
     return result
 
 
@@ -271,7 +294,7 @@ class CodeGenerator:
         """
         spaces = ' ' * self.INDENT * self._indent
 
-        name = '" + render_path((data if root_object is None else root_object), root_path + {path}) + "'.format(path=prepare_path(self._variable_path))
+        name = '" + render_path((data if root_object is None else root_object), root_path + {path}, special_fields_extractor) + "'.format(path=prepare_path(self._variable_path))
 
         context = dict(
             self._definition or {},
@@ -297,7 +320,8 @@ class CodeGenerator:
     def exc(self, msg, *args, rule=None):
         """
         """
-        msg = 'raise JsonSchemaException("'+msg+'", value={variable}, name="{name}", definition={definition}, rule={rule})'
+        name_path = prepare_path(self._variable_path)
+        msg = 'raise JsonSchemaException("'+msg+'", value={variable}, name="{name}", definition={definition}, rule={rule}, path=root_path + ' + name_path + ')'
         self.l(msg, *args, definition=repr(self._definition), rule=repr(rule))
 
     def create_variable_with_length(self):
