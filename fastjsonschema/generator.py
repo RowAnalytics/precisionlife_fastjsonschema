@@ -31,17 +31,20 @@ def prepare_path(path):
     return result
 
 
-def render_path(path):
+def render_path(obj, path):
     """
     Returns path as a string that can be displayed to the user.
     So for this input: [1, 'data', 'text']
     returns: data[1].data.text
+    :param obj:     Object the path is in.
     :param path:    List of strings or ints (actual runtime values, not code fragments).
                     Ints are array indexes, strings are field names.
     :return: String.
     """
+    cur_obj = obj
     result = "data"
     for element in path:
+        cur_obj = cur_obj[element]
         result += ("[{}]" if isinstance(element, int) else ".{}").format(element)
     return result
 
@@ -189,7 +192,7 @@ class CodeGenerator:
         self._validation_functions_done.add(uri)
         self.l('')
         with self._resolver.resolving(uri) as definition:
-            with self.l('def {}(data, *, path_prefix=[]):', name):
+            with self.l('def {}(data, *, root_object=None, root_path=[]):', name):
                 self.generate_func_code_block(definition, 'data', [], clear_variables=True)
                 self.l('return data')
 
@@ -242,8 +245,8 @@ class CodeGenerator:
             uri = self._resolver.get_uri()
             if uri not in self._validation_functions_done:
                 self._needed_validation_functions[uri] = name
-            # call validation function, with current full name as a path_prefix
-            self.l('{}({variable}, path_prefix=path_prefix + {path})', name, path=prepare_path(self._variable_path))
+            # call validation function, with current full name as a root_path
+            self.l('{}({variable}, root_object=(data if root_object is None else root_object), root_path=root_path + {path})', name, path=prepare_path(self._variable_path))
 
 
     # pylint: disable=invalid-name
@@ -268,7 +271,7 @@ class CodeGenerator:
         """
         spaces = ' ' * self.INDENT * self._indent
 
-        name = '" + render_path(path_prefix + {path}) + "'.format(path=prepare_path(self._variable_path))
+        name = '" + render_path((data if root_object is None else root_object), root_path + {path}) + "'.format(path=prepare_path(self._variable_path))
 
         context = dict(
             self._definition or {},
