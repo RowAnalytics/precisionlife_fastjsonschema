@@ -43,10 +43,11 @@ def test_min_properties(asserter, value, expected):
     }, value, expected)
 
 
-exc = JsonSchemaException('data must contain [\'a\', \'b\'] properties', value='{data}', name='data', definition='{definition}', rule='required')
+exc = JsonSchemaException('data is missing required properties: a, b', value='{data}', name='data', definition='{definition}', rule='required')
+exc2 = JsonSchemaException('data is missing required properties: b', value='{data}', name='data', definition='{definition}', rule='required')
 @pytest.mark.parametrize('value, expected', [
     ({}, exc),
-    ({'a': 1}, exc),
+    ({'a': 1}, exc2),
     ({'a': 1, 'b': 2}, {'a': 1, 'b': 2}),
 ])
 def test_required(asserter, value, expected):
@@ -106,8 +107,8 @@ def test_properties_with_additional_properties(asserter, value, expected):
     ({'a': 1}, {'a': 1}),
     ({'a': 1, 'b': ''}, {'a': 1, 'b': ''}),
     ({'a': 1, 'b': 2}, JsonSchemaException('data.b must be string', value=2, name='data.b', definition={'type': 'string'}, rule='type')),
-    ({'a': 1, 'b': '', 'any': True}, JsonSchemaException('data must contain only specified properties', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
-    ({'cd': True}, JsonSchemaException('data must contain only specified properties', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
+    ({'a': 1, 'b': '', 'any': True}, JsonSchemaException('data: additional properties are not allowed: any', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
+    ({'cd': True}, JsonSchemaException('data: additional properties are not allowed: cd', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
     ({'c_d': True}, {'c_d': True}),
 ])
 def test_properties_without_additional_properties(asserter, value, expected):
@@ -202,40 +203,3 @@ def test_full_name_after_ref(asserter, value, expected):
             "prop1": {"$ref": "#/definitions/SomeType"},
         }
     }, value, expected)
-
-
-@pytest.mark.parametrize('value, expected', [
-    ({ "kind": "text", "prop1": { "$print": "a", "str": 1 } }, JsonSchemaException('data<kind=text>.prop1<$print>.str must be string', value=1, name='data<kind=text>.prop1<$print>.str', definition={'type': 'string'}, rule='type')),
-    ({ "kind": "text", "named": { "name": "obj", "str": 1 } }, JsonSchemaException('data<kind=text>.named<name=obj>.str must be string', value=1, name='data<kind=text>.named<name=obj>.str', definition={'type': 'string'}, rule='type')),
-])
-def test_special_fields_reporting(asserter, value, expected):
-    def special_fields_extractor(instance):
-        tag_fields = [field for field in instance.keys() if field.startswith('$')]
-        discriminator_fields = [field for field in instance.keys() if field in ['type', 'kind']]
-        identification_fields = [field for field in instance.keys() if field in ['name']]
-        return tag_fields, discriminator_fields, identification_fields
-
-    asserter({
-        "definitions": {
-            "SomeType": {
-                "type": "object",
-                "properties": {
-                    "$print": {"type": "string"},
-                    "str": {"type": "string"},
-                },
-            },
-            "NamedType": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "str": {"type": "string"},
-                },
-            },
-        },
-        "type": "object",
-        "properties": {
-            "kind": {"type": "string"},
-            "prop1": {"$ref": "#/definitions/SomeType"},
-            "named": {"$ref": "#/definitions/NamedType"},
-        }
-    }, value, expected, special_fields_extractor=special_fields_extractor)

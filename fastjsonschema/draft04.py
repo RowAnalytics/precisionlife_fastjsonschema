@@ -2,8 +2,7 @@ import decimal
 import re
 
 from .exceptions import JsonSchemaDefinitionException
-from .generator import CodeGenerator, enforce_list
-
+from .generator import CodeGenerator, enforce_list, prepare_path
 
 JSON_TYPE_TO_PYTHON_TYPE = {
     'null': 'NoneType',
@@ -146,15 +145,21 @@ class CodeGeneratorDraft04(CodeGenerator):
         Valid values for this definition are 3, 4, 5, 10, 11, ... but not 8 for example.
         """
         self.l('{variable}_any_of_count = 0')
+        self.l('{variable}_errors = []')
         for definition_item in self._definition['anyOf']:
             # When we know it's passing (at least once), we do not need to do another expensive try-except.
             with self.l('if not {variable}_any_of_count:', optimize=False):
                 with self.l('try:', optimize=False):
                     self.generate_func_code_block(definition_item, self._variable, self._variable_path, clear_variables=True)
                     self.l('{variable}_any_of_count += 1')
-                self.l('except JsonSchemaException: pass')
+                with self.l('except JsonSchemaException as exc:'):
+                    self.l('{variable}_errors.append(exc)')
 
         with self.l('if not {variable}_any_of_count:', optimize=False):
+            self.create_variable_is_dict()
+            with self.l('if special_fields_extractor and {variable}_is_dict:'):
+                name_path = prepare_path(self._variable_path)
+                self.l('raise_best_anyof_error(data, root_object, root_path + ' + name_path + ', {variable}_errors, special_fields_extractor, {definition})', definition=repr(self._definition))
             self.exc('{name} must be valid by one of anyOf definition', rule='anyOf')
 
     def generate_one_of(self):
@@ -437,9 +442,9 @@ class CodeGeneratorDraft04(CodeGenerator):
         with self.l('if {variable}_is_dict:'):
             if not isinstance(self._definition['required'], (list, tuple)):
                 raise JsonSchemaDefinitionException('required must be an array')
-            self.create_variable_with_length()
             with self.l('if not all(prop in {variable} for prop in {required}):'):
-                self.exc('{name} must contain {} properties', self.e(self._definition['required']), rule='required')
+                self.l('{variable}_missing_props = sorted(set({required}) - {variable}.keys())')
+                self.exc('{name} is missing required properties: " + ", ".join({variable}_missing_props) + "', rule='required')
 
     def generate_properties(self):
         """
@@ -458,7 +463,6 @@ class CodeGeneratorDraft04(CodeGenerator):
         self.create_variable_is_dict()
         with self.l('if {variable}_is_dict:'):
             self.create_variable_keys()
-            self.l('{variable}_tag_fields, {variable}_discriminator_fields, {variable}_identification_fields = special_fields_extractor({variable}) if special_fields_extractor else ([], [], [])')
             for key, prop_definition in self._definition['properties'].items():
                 key_name = re.sub(r'($[^a-zA-Z]|[^a-zA-Z0-9])', '', key)
                 if not isinstance(prop_definition, (dict, bool)):
@@ -540,7 +544,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                         )
             else:
                 with self.l('if {variable}_keys:'):
-                    self.exc('{name} must contain only specified properties', rule='additionalProperties')
+                    self.exc('{name}: additional properties are not allowed: " + ", ".join({variable}_keys) + "', rule='additionalProperties')
 
     def generate_dependencies(self):
         """

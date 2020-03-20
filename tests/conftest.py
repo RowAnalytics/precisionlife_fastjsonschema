@@ -15,7 +15,7 @@ from fastjsonschema.draft07 import CodeGeneratorDraft07
 
 @pytest.fixture
 def asserter():
-    def f(definition, value, expected, formats={}, special_fields_extractor=None):
+    def f(definition, value, expected, formats={}, *, special_fields_extractor=None, ignore_exc_fields=None):
         # When test fails, it will show up code.
         code_generator = CodeGeneratorDraft07(definition, formats=formats)
         print(code_generator.func_code)
@@ -28,11 +28,17 @@ def asserter():
         if isinstance(expected, JsonSchemaException):
             with pytest.raises(JsonSchemaException) as exc:
                 validator(value, special_fields_extractor=special_fields_extractor)
-            assert exc.value.message == expected.message
-            assert exc.value.value == (value if expected.value == '{data}' else expected.value)
-            assert exc.value.name == expected.name
-            assert exc.value.definition == (definition if expected.definition == '{definition}' else expected.definition)
-            assert exc.value.rule == expected.rule
+            ignore_exc_fields = ignore_exc_fields or []
+            if 'message' not in ignore_exc_fields:
+                assert exc.value.message == expected.message
+            if 'value' not in ignore_exc_fields:
+                assert exc.value.value == (value if expected.value == '{data}' else expected.value)
+            if 'name' not in ignore_exc_fields:
+                assert exc.value.name == expected.name
+            if 'definition' not in ignore_exc_fields:
+                assert exc.value.definition == (definition if expected.definition == '{definition}' else expected.definition)
+            if 'rule' not in ignore_exc_fields:
+                assert exc.value.rule == expected.rule
         else:
             assert validator(value) == expected
     return f
