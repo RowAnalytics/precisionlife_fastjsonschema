@@ -1,17 +1,14 @@
 import re
 
 
-SPLIT_RE = re.compile(r'[\.\[\]]+')
-
-
 class JsonSchemaException(ValueError):
     """
     Exception raised by validation function. Available properties:
 
      * ``message`` containing human-readable information what is wrong (e.g. ``data.property[index] must be smaller than or equal to 42``),
      * invalid ``value`` (e.g. ``60``),
-     * ``name`` of a path in the data structure (e.g. ``data.propery[index]``),
-     * ``path`` as an array in the data structure (e.g. ``['data', 'propery', 'index']``),
+     * ``name`` of a path in the data structure (e.g. ``data.property[0]``),
+     * ``path`` as an array in the data structure (e.g. ``['data', 'property', 0]``),
      * the whole ``definition`` which the ``value`` has to fulfil (e.g. ``{'type': 'number', 'maximum': 42}``),
      * ``rule`` which the ``value`` is breaking (e.g. ``maximum``)
      * and ``rule_definition`` (e.g. ``42``).
@@ -20,17 +17,14 @@ class JsonSchemaException(ValueError):
         Added all extra properties.
     """
 
-    def __init__(self, message, value=None, name=None, definition=None, rule=None):
+    def __init__(self, message, value, name, definition, rule, path=None): # @todo path should be required. Will fix after tests are updated.
         super().__init__(message)
-        self.message = message
-        self.value = value
-        self.name = name
-        self.definition = definition
-        self.rule = rule
-
-    @property
-    def path(self):
-        return [item for item in SPLIT_RE.split(self.name) if item != '']
+        self.message = message          # Error message.
+        self.value = value              # Value with error.
+        self.name = name                # Human readable path from root object to the item with error.
+        self.definition = definition    # Schema that value failed on.
+        self.rule = rule                # Name of the rule in the schema that was violated.
+        self.path = path                # List of ints (array indices) and strings (field names) on the path from root object to the item with error.
 
     @property
     def rule_definition(self):
@@ -43,3 +37,6 @@ class JsonSchemaDefinitionException(JsonSchemaException):
     """
     Exception raised by generator of validation function.
     """
+    def __init__(self, message):
+        # @todo It doesn't make sense for JsonSchemaDefinitionException to inherit from JsonSchemaException.
+        super().__init__(message, None, None, None, None, None)

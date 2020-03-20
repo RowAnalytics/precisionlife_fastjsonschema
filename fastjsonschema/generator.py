@@ -31,7 +31,7 @@ def prepare_path(path):
     return result
 
 
-def render_path(obj, path):
+def render_path(obj, path, special_fields_extractor):
     """
     Returns path as a string that can be displayed to the user.
     So for this input: [1, 'data', 'text']
@@ -39,17 +39,150 @@ def render_path(obj, path):
     :param obj:     Object the path is in.
     :param path:    List of strings or ints (actual runtime values, not code fragments).
                     Ints are array indexes, strings are field names.
+    :param special_fields_extractor: Function that given a Mapping returns (tag_fields, discriminator_fields, identification_fields) - lists of fields in given category.
     :return: String.
     """
-    cur_obj = obj
     result = "data"
+
+    def add_context(o):
+        nonlocal result
+
+        if special_fields_extractor is None:
+            return
+
+        if not isinstance(o, collections.abc.Mapping):
+            return
+
+        tag_fields, discriminator_fields, identification_fields = special_fields_extractor(o)
+        if len(tag_fields) + len(discriminator_fields) + len(identification_fields) == 0:
+            return
+
+        id_fields = discriminator_fields + identification_fields
+        id_data = ["{}={}".format(field, o[field]) for field in id_fields]
+        result += "<"
+        result += ",".join(tag_fields + id_data)
+        result += ">"
+
+    cur_obj = obj
+    add_context(cur_obj)
     for element in path:
         cur_obj = cur_obj[element]
         result += ("[{}]" if isinstance(element, int) else ".{}").format(element)
+        add_context(cur_obj)
     return result
 
 
-render_path_source_lines = inspect.getsourcelines(render_path)[0]
+def is_any_field_error(path, error):
+    """
+    Returns True if given error is related to any field.
+    :param path:    Path to current element.
+    :param error:   JsonSchemaException from validating schema of that element.
+    """
+    if len(error.path) > len(path):
+        return True
+    if error.rule == 'required':
+        return True
+    if error.rule == 'additionalProperties':
+        return True
+    if error.rule == 'propertyNames':
+        return True
+    return False
+
+
+def is_specific_field_error(path, error, field, *, existence_only):
+    """
+    Returns True if given error is related to given field.
+    :param existence_only: If True errors about the value of the field are ignored, only errors about existence of given field are taken into account.
+    """
+    if not existence_only:
+        if (len(error.path) > len(path)) and (error.path[len(path)] == field):
+            return True
+
+    escaped_field = re.escape(field)
+
+    if (error.rule == 'required') and (re.search(f'is missing required properties: {escaped_field}', error.message)):
+        return True
+
+    if error.rule == 'additionalProperties':
+        if re.search(f'additional properties are not allowed: {escaped_field}', error.message):
+            return True
+
+    if error.rule == 'propertyNames':
+        raise Exception('@todo Figure out what should be a check here.')
+
+    return False
+
+
+def is_fundamental_error(path, error):
+    """
+    Returns True if error is not field related. (So type related, for example.)
+    """
+    return not is_any_field_error(path, error)
+
+
+def raise_best_anyof_error(data, root_object, root_path, errors, special_fields_extractor, definition):
+    """
+    If any tag or discriminator fields are present:
+      First schema that:
+      - passed type check,
+      - did not fail on any discriminator fields
+      - allowed all tag fields
+      will be assumed to be the right schema, and therefore exception from it will be returned.
+      Additionally if object did not validate an error is returned that says those tag/discriminator fields have invalid values.
+
+    It is assumed that tag/discriminator fields are first fields in the schema (this is very week as well, because order of elements in JSON is not preserved...).
+    If this is not the case validation will still work, but error messages won't be improved.
+    """
+    assert len(errors) > 0
+
+    tag_fields, discriminator_fields, identification_fields = special_fields_extractor(data)
+    if len(tag_fields) + len(discriminator_fields) == 0:
+        return
+
+    for error in errors:
+        if is_fundamental_error(root_path, error):
+            continue
+
+        # If object has tag fields, and tag fields are allowed by schema, we raise this error.
+        # @note This doesn't work tool well, because we get only first error from subschema, not all of errors.
+        #       Will try to improve if needed.
+        if len(tag_fields) > 0:
+            allowed_fields = [not is_specific_field_error(root_path, error, tag_field, existence_only=True) for tag_field in tag_fields]
+            if all(allowed_fields):
+                raise error
+
+        # If object has discriminator fields, and there were no errors on discriminator fields, we raise this error.
+        if len(discriminator_fields) > 0:
+            allowed_fields = [not is_specific_field_error(root_path, error, discriminator_field, existence_only=False) for discriminator_field in discriminator_fields]
+            if all(allowed_fields):
+                raise error
+
+    # If object has tag fields, we know those were not accepted by any schema, so we raise an error for a tag field.
+    if len(tag_fields) > 0:
+        name = render_path(root_object, root_path, special_fields_extractor)
+        raise JsonSchemaException(name + " tag fields not recognized", data, name, definition, 'unknownTags', root_path)
+
+    # If object has any discriminator fields, we know those were not accepted by any schema, so complain that discriminators were not matched.
+    if len(discriminator_fields) > 0:
+        name = render_path(root_object, root_path, special_fields_extractor)
+        raise JsonSchemaException(name + " discriminator fields not recognized", data, name, definition, 'badDiscriminators', root_path)
+
+
+common_functions_lines = [
+    *inspect.getsourcelines(render_path)[0],
+    '',
+    '',
+    *inspect.getsourcelines(is_any_field_error)[0],
+    '',
+    '',
+    *inspect.getsourcelines(is_specific_field_error)[0],
+    '',
+    '',
+    *inspect.getsourcelines(is_fundamental_error)[0],
+    '',
+    '',
+    *inspect.getsourcelines(raise_best_anyof_error)[0],
+]
 
 
 # pylint: disable=too-many-instance-attributes,too-many-public-methods
@@ -130,6 +263,10 @@ class CodeGenerator:
             re=re,
             JsonSchemaException=JsonSchemaException,
             render_path=render_path,
+            is_any_field_error=is_any_field_error,
+            is_specific_field_error=is_specific_field_error,
+            is_fundamental_error=is_fundamental_error,
+            raise_best_anyof_error=raise_best_anyof_error,
         )
 
     @property
@@ -147,7 +284,7 @@ class CodeGenerator:
                 '',
                 '',
                 '',
-                *render_path_source_lines,
+                *common_functions_lines,
                 '',
             ])
         regexs = ['"{}": re.compile(r"{}")'.format(key, value.pattern) for key, value in self._compile_regexps.items()]
@@ -162,7 +299,7 @@ class CodeGenerator:
             '}',
             '',
             '',
-            *render_path_source_lines,
+            *common_functions_lines,
             '',
         ])
 
@@ -192,7 +329,8 @@ class CodeGenerator:
         self._validation_functions_done.add(uri)
         self.l('')
         with self._resolver.resolving(uri) as definition:
-            with self.l('def {}(data, *, root_object=None, root_path=[]):', name):
+            with self.l('def {}(data, *, root_object=None, root_path=[], special_fields_extractor=None):', name):
+                self.l('root_object = (data if root_object is None else root_object)')
                 self.generate_func_code_block(definition, 'data', [], clear_variables=True)
                 self.l('return data')
 
@@ -246,7 +384,7 @@ class CodeGenerator:
             if uri not in self._validation_functions_done:
                 self._needed_validation_functions[uri] = name
             # call validation function, with current full name as a root_path
-            self.l('{}({variable}, root_object=(data if root_object is None else root_object), root_path=root_path + {path})', name, path=prepare_path(self._variable_path))
+            self.l('{}({variable}, root_object=root_object, root_path=root_path + {path}, special_fields_extractor=special_fields_extractor)', name, path=prepare_path(self._variable_path))
 
 
     # pylint: disable=invalid-name
@@ -271,7 +409,7 @@ class CodeGenerator:
         """
         spaces = ' ' * self.INDENT * self._indent
 
-        name = '" + render_path((data if root_object is None else root_object), root_path + {path}) + "'.format(path=prepare_path(self._variable_path))
+        name = '" + render_path(root_object, root_path + {path}, special_fields_extractor) + "'.format(path=prepare_path(self._variable_path))
 
         context = dict(
             self._definition or {},
@@ -297,7 +435,8 @@ class CodeGenerator:
     def exc(self, msg, *args, rule=None):
         """
         """
-        msg = 'raise JsonSchemaException("'+msg+'", value={variable}, name="{name}", definition={definition}, rule={rule})'
+        name_path = prepare_path(self._variable_path)
+        msg = 'raise JsonSchemaException("'+msg+'", value={variable}, name="{name}", definition={definition}, rule={rule}, path=root_path + ' + name_path + ')'
         self.l(msg, *args, definition=repr(self._definition), rule=repr(rule))
 
     def create_variable_with_length(self):

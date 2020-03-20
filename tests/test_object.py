@@ -43,10 +43,11 @@ def test_min_properties(asserter, value, expected):
     }, value, expected)
 
 
-exc = JsonSchemaException('data must contain [\'a\', \'b\'] properties', value='{data}', name='data', definition='{definition}', rule='required')
+exc = JsonSchemaException('data is missing required properties: a, b', value='{data}', name='data', definition='{definition}', rule='required')
+exc2 = JsonSchemaException('data is missing required properties: b', value='{data}', name='data', definition='{definition}', rule='required')
 @pytest.mark.parametrize('value, expected', [
     ({}, exc),
-    ({'a': 1}, exc),
+    ({'a': 1}, exc2),
     ({'a': 1, 'b': 2}, {'a': 1, 'b': 2}),
 ])
 def test_required(asserter, value, expected):
@@ -106,8 +107,8 @@ def test_properties_with_additional_properties(asserter, value, expected):
     ({'a': 1}, {'a': 1}),
     ({'a': 1, 'b': ''}, {'a': 1, 'b': ''}),
     ({'a': 1, 'b': 2}, JsonSchemaException('data.b must be string', value=2, name='data.b', definition={'type': 'string'}, rule='type')),
-    ({'a': 1, 'b': '', 'any': True}, JsonSchemaException('data must contain only specified properties', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
-    ({'cd': True}, JsonSchemaException('data must contain only specified properties', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
+    ({'a': 1, 'b': '', 'any': True}, JsonSchemaException('data: additional properties are not allowed: any', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
+    ({'cd': True}, JsonSchemaException('data: additional properties are not allowed: cd', value='{data}', name='data', definition='{definition}', rule='additionalProperties')),
     ({'c_d': True}, {'c_d': True}),
 ])
 def test_properties_without_additional_properties(asserter, value, expected):

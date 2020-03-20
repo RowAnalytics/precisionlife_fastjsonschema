@@ -8,7 +8,7 @@ def number_type(request):
     return request.param
 
 
-exc = JsonSchemaException('data must be {number_type}')
+exc = JsonSchemaException('data must be {number_type}', None, None, None, None, None)
 @pytest.mark.parametrize('value, expected', [
     (-5, -5),
     (0, 0),
