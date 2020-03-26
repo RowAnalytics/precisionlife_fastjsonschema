@@ -1,8 +1,8 @@
-===========================
-Fast JSON schema for Python
-===========================
+====================================
+Modified fast JSON schema for Python
+====================================
 
-This is a modification of fastjsonschema done for the following purposes:
+This is a modification of ``fastjsonschema`` done for the following purposes:
 
 * Add support for validating documents that are composed from any Sequences and Mappings, not only lists and dicts.
 * Include full path to validated field in error messages.
@@ -27,7 +27,8 @@ This is a modification of fastjsonschema done for the following purposes:
 * When unexpected additional fields are present those should be enumerated in error message.
   (see: https://github.com/horejsek/python-fastjsonschema/issues/84)
 * Make the store for cached documents overridable.
-* Improve handling of '$' character (see DOLLAR_FINDER).
+* Improve handling of custom network schemes in ``$ref`` links.
+* Added special hacky ``internal-no-cache`` scheme that prevents from caching a schema.
 
 
 Please note that tag and discriminator fields must be hand-picked for any given schema,
