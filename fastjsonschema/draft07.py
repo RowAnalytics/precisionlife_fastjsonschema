@@ -50,7 +50,7 @@ class CodeGeneratorDraft07(CodeGeneratorDraft06):
             self.generate_func_code_block(
                 self._definition['if'],
                 self._variable,
-                self._variable_name,
+                self._variable_path,
                 clear_variables=True
             )
         with self.l('except JsonSchemaException:'):
@@ -58,7 +58,7 @@ class CodeGeneratorDraft07(CodeGeneratorDraft06):
                 self.generate_func_code_block(
                     self._definition['else'],
                     self._variable,
-                    self._variable_name,
+                    self._variable_path,
                     clear_variables=True
                 )
             else:
@@ -68,7 +68,7 @@ class CodeGeneratorDraft07(CodeGeneratorDraft06):
                 self.generate_func_code_block(
                     self._definition['then'],
                     self._variable,
-                    self._variable_name,
+                    self._variable_path,
                     clear_variables=True
                 )
 

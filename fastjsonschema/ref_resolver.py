@@ -23,6 +23,29 @@ def get_id(schema):
     return schema.get('$id', schema.get('id', ''))
 
 
+def fixed_urljoin(url0, url1):
+    """
+    Same as urlparse.urljoin(), but treats all schemes as hierarchical.
+    Original urljoin() doesn't work correctly with custom schemas (see https://bugs.python.org/issue18828).
+    """
+    parts0 = urlparse.urlsplit(url0)
+    if parts0.scheme in ['http', 'https']:
+        return urlparse.urljoin(url0, url1)
+
+    parts1 = urlparse.urlsplit(url1)
+    if parts1.scheme != '':
+        return url1
+
+    url0_http = urlparse.urlunsplit(('http', *parts0[1:]))
+
+    joined_url = urlparse.urljoin(url0_http, url1)
+
+    joined_parts = urlparse.urlsplit(joined_url)
+    fixed_url = urlparse.urlunsplit((parts0.scheme, *joined_parts[1:]))
+
+    return fixed_url
+
+
 def resolve_path(schema, fragment):
     """
     Return definition from path.
@@ -56,8 +79,13 @@ def resolve_remote(uri, handlers):
         if handlers does notdefine otherwise.
     """
     scheme = urlparse.urlsplit(uri).scheme
-    if scheme in handlers:
-        result = handlers[scheme](uri)
+    try:
+        handler = handlers[scheme]  # This is done this way to work fine with defaultdict.
+    except KeyError:
+        handler = None
+
+    if handler is not None:
+        result = handler(uri)
     else:
         req = urlopen(uri)
         encoding = req.info().get_content_charset() or 'utf-8'
@@ -104,7 +132,7 @@ class RefResolver:
         Context manager to handle current scope.
         """
         old_scope = self.resolution_scope
-        self.resolution_scope = urlparse.urljoin(old_scope, scope)
+        self.resolution_scope = fixed_urljoin(old_scope, scope)
         try:
             yield
         finally:
@@ -116,17 +144,20 @@ class RefResolver:
         Context manager which resolves a JSON ``ref`` and enters the
         resolution scope of this ref.
         """
-        new_uri = urlparse.urljoin(self.resolution_scope, ref)
+        new_uri = fixed_urljoin(self.resolution_scope, ref)
         uri, fragment = urlparse.urldefrag(new_uri)
 
-        if normalize(uri) in self.store:
-            schema = self.store[normalize(uri)]
+        normalized_uri = normalize(uri)
+        if normalized_uri in self.store:
+            schema = self.store[normalized_uri]
         elif not uri or uri == self.base_uri:
             schema = self.schema
         else:
             schema = resolve_remote(uri, self.handlers)
             if self.cache:
-                self.store[normalize(uri)] = schema
+                scheme = urlparse.urlsplit(normalized_uri).scheme
+                if scheme != 'internal-no-cache':
+                    self.store[normalized_uri] = schema
 
         old_base_uri, old_schema = self.base_uri, self.schema
         self.base_uri, self.schema = uri, schema
@@ -156,7 +187,7 @@ class RefResolver:
             pass
         elif '$ref' in node and isinstance(node['$ref'], str):
             ref = node['$ref']
-            node['$ref'] = urlparse.urljoin(self.resolution_scope, ref)
+            node['$ref'] = fixed_urljoin(self.resolution_scope, ref)
         elif ('$id' in node or 'id' in node) and isinstance(get_id(node), str):
             with self.in_scope(get_id(node)):
                 self.store[normalize(self.resolution_scope)] = node

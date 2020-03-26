@@ -118,7 +118,7 @@ class CodeGeneratorDraft06(CodeGeneratorDraft04):
                             self.generate_func_code_block(
                                 property_names_definition,
                                 '{}_key'.format(self._variable),
-                                self._variable_name,
+                                self._variable_path,
                                 clear_variables=True,
                             )
                         with self.l('except JsonSchemaException:'):
@@ -156,7 +156,7 @@ class CodeGeneratorDraft06(CodeGeneratorDraft04):
                         self.generate_func_code_block(
                             contains_definition,
                             '{}_key'.format(self._variable),
-                            self._variable_name,
+                            self._variable_path,
                             clear_variables=True,
                         )
                         self.l('{variable}_contains = True')
