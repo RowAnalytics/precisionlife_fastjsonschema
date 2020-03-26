@@ -1,6 +1,6 @@
 import pytest
 
-import fastjsonschema
+import precisionlife_fastjsonschema as fastjsonschema
 
 
 JSON_SCHEMA = {

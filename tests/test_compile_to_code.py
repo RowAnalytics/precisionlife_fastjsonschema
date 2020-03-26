@@ -2,7 +2,7 @@ import os
 import pytest
 import shutil
 
-from fastjsonschema import compile_to_code, compile as compile_spec
+from precisionlife_fastjsonschema import compile_to_code, compile as compile_spec
 
 @pytest.yield_fixture(autouse=True)
 def run_around_tests():

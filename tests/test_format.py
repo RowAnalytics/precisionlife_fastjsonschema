@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from fastjsonschema import JsonSchemaException
+from precisionlife_fastjsonschema import JsonSchemaException
 
 
 exc = JsonSchemaException('data must be date-time', value='{data}', name='data', definition='{definition}', rule='format')

@@ -1,6 +1,6 @@
 import pytest
 
-from fastjsonschema import JsonSchemaException
+from precisionlife_fastjsonschema import JsonSchemaException
 
 
 definition = {

@@ -1,7 +1,7 @@
 import pytest
 
-import fastjsonschema
-from fastjsonschema import JsonSchemaException
+import precisionlife_fastjsonschema as fastjsonschema
+from precisionlife_fastjsonschema import JsonSchemaException
 
 validationTestTypesSchema = {
   "$schema": "http://json-schema.org/draft-07/schema#",

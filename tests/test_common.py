@@ -1,6 +1,6 @@
 import pytest
 
-from fastjsonschema import JsonSchemaException
+from precisionlife_fastjsonschema import JsonSchemaException
 
 
 exc = JsonSchemaException('data must be one of [1, 2, \'a\', "b\'c"]', value='{data}', name='data', definition='{definition}', rule='enum')

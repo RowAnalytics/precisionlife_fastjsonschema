@@ -1,6 +1,6 @@
 import pytest
 
-from fastjsonschema import JsonSchemaDefinitionException, compile
+from precisionlife_fastjsonschema import JsonSchemaDefinitionException, compile
 
 
 @pytest.mark.parametrize('schema', [

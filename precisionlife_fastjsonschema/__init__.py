@@ -95,7 +95,7 @@ def validate(definition, data, handlers={}, formats={}):
 
     .. code-block:: python
 
-        import fastjsonschema
+        import precisionlife_fastjsonschema as fastjsonschema
 
         fastjsonschema.validate({'type': 'string'}, 'hello')
         # same as: compile({'type': 'string'})('hello')
@@ -113,7 +113,7 @@ def compile(definition, handlers={}, formats={}, **resolver_kwargs):
 
     .. code-block:: python
 
-        import fastjsonschema
+        import precisionlife_fastjsonschema as fastjsonschema
 
         validate = fastjsonschema.compile({'type': 'string'})
         validate('hello')
@@ -178,7 +178,7 @@ def compile_to_code(definition, handlers={}, formats={}, **resolver_kwargs):
 
     .. code-block:: python
 
-        import fastjsonschema
+        import precisionlife_fastjsonschema as fastjsonschema
 
         code = fastjsonschema.compile_to_code({'type': 'string'})
         with open('your_file.py', 'w') as f:
