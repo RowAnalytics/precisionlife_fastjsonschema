@@ -23,7 +23,7 @@ $(VENV_NAME)/bin/activate: setup.py
 	touch $(VENV_NAME)/bin/activate
 
 lint: venv
-	${PYTHON} -m pylint fastjsonschema
+	${PYTHON} -m pylint precisionlife_fastjsonschema
 
 jsonschemasuitcases:
 	git submodule init
@@ -58,7 +58,7 @@ performance: venv
 	${PYTHON} performance.py
 
 printcode: venv
-	cat schema.json | python3 -m fastjsonschema
+	cat schema.json | python3 -m precisionlife_fastjsonschema
 
 doc:
 	cd docs; make

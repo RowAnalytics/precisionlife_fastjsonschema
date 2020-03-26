@@ -9,8 +9,8 @@ from pprint import pprint
 
 import pytest
 
-from fastjsonschema import JsonSchemaException, compile
-from fastjsonschema.draft07 import CodeGeneratorDraft07
+from precisionlife_fastjsonschema import JsonSchemaException, compile
+from precisionlife_fastjsonschema.draft07 import CodeGeneratorDraft07
 
 
 @pytest.fixture

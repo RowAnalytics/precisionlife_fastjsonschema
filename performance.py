@@ -4,7 +4,7 @@ import tempfile
 from textwrap import dedent
 
 # apt-get install jsonschema json-spec validictory
-import fastjsonschema
+import precisionlife_fastjsonschema as fastjsonschema
 import jsonschema
 import validictory
 from jsonspec.validators import load

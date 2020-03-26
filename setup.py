@@ -11,15 +11,15 @@ with open(os.path.join(os.path.dirname(__file__), "README.rst")) as readme:
 
 # https://packaging.python.org/en/latest/single_source_version.html
 try:
-    execfile('fastjsonschema/version.py')
+    execfile('precisionlife_fastjsonschema/version.py')
 except NameError:
-    exec(open('fastjsonschema/version.py').read())
+    exec(open('precisionlife_fastjsonschema/version.py').read())
 
 
 setup(
-    name='fastjsonschema',
+    name='precisionlife_fastjsonschema',
     version=VERSION,
-    packages=['fastjsonschema'],
+    packages=['precisionlife_fastjsonschema'],
     extras_require={
         'devel': [
             'colorama',
@@ -33,10 +33,10 @@ setup(
         ],
     },
 
-    url='https://github.com/seznam/python-fastjsonschema',
-    author='Michal Horejsek',
-    author_email='horejsekmichal@gmail.com',
-    description='Fastest Python implementation of JSON schema',
+    url='https://github.com/RowAnalytics/precisionlife-fastjsonschema',
+    author='Zbigniew Skowron',
+    author_email='zbigniew@precisionlife.com',
+    description='Modified fastest Python implementation of JSON schema',
     long_description=LONG_DESCRIPTION,
     license='BSD',
 

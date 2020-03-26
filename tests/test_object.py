@@ -1,7 +1,7 @@
 import pytest
 
-import fastjsonschema
-from fastjsonschema import JsonSchemaDefinitionException, JsonSchemaException
+import precisionlife_fastjsonschema as fastjsonschema
+from precisionlife_fastjsonschema import JsonSchemaDefinitionException, JsonSchemaException
 
 
 exc = JsonSchemaException('data must be object', value='{data}', name='data', definition='{definition}', rule='type')
