@@ -1,3 +1,10 @@
+=== 2.14.4 (2020-03-19)
+
+* Fix $id property
+* Add extra properties to error message when additionalProperties are set to False
+* Better exception message when referencing schema is not valid JSON
+
+
 === 2.14.3 (2020-02-27)
 
 * Tuple is also valid array
