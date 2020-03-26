@@ -56,10 +56,10 @@ class CodeGeneratorDraft04(CodeGenerator):
             ('items', self.generate_items),
             ('minProperties', self.generate_min_properties),
             ('maxProperties', self.generate_max_properties),
-            ('required', self.generate_required),
             ('properties', self.generate_properties),
             ('patternProperties', self.generate_pattern_properties),
-            ('additionalProperties', self.generate_additional_properties),
+            ('required', self.generate_required_and_additional),
+            ('additionalProperties', self.generate_required_and_additional),
             ('dependencies', self.generate_dependencies),
         ))
 
@@ -437,14 +437,34 @@ class CodeGeneratorDraft04(CodeGenerator):
             with self.l('if {variable}_len > {maxProperties}:'):
                 self.exc('{name} must contain less than or equal to {maxProperties} properties', rule='maxProperties')
 
-    def generate_required(self):
+    def generate_required_and_additional(self):
+        if not self.can_emit_required_and_additional():
+            return
+        self.l('{variable}_ra_msgs = []')
+        if 'required' in self._definition:
+            with self.l('try:'):
+                self._generate_required()
+            with self.l('except Exception as exc:'):
+                self.l('{variable}_ra_msgs.append(exc.message)')
+        if 'additionalProperties' in self._definition:
+            with self.l('try:'):
+                self._generate_additional_properties()
+            with self.l('except Exception as exc:'):
+                with self.l('if exc.rule != \'additionalProperties\':'):
+                    self.l('raise')
+                self.l('{variable}_ra_msgs.append(exc.message)')
+        with self.l('if {variable}_ra_msgs:'):
+            self.exc('" + ", ".join({variable}_ra_msgs ) + "', rule='required-additionalProperties')
+
+    def _generate_required(self):
         self.create_variable_is_dict()
         with self.l('if {variable}_is_dict:'):
             if not isinstance(self._definition['required'], (list, tuple)):
                 raise JsonSchemaDefinitionException('required must be an array')
             with self.l('if not all(prop in {variable} for prop in {required}):'):
                 self.l('{variable}_missing_props = sorted(set({required}) - {variable}.keys())')
-                self.exc('{name} is missing required properties: " + ", ".join({variable}_missing_props) + "', rule='required')
+                # @note Field names are enclosed in [brackets] to make it easier to detect using regexps.
+                self.exc('{name} is missing required properties: " + ", ".join(f\'[{{v}}]\' for v in {variable}_missing_props) + "', rule='required')
 
     def generate_properties(self):
         """
@@ -510,7 +530,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                             clear_variables=True,
                         )
 
-    def generate_additional_properties(self):
+    def _generate_additional_properties(self):
         """
         Means object with keys with values defined by definition.
 
@@ -531,6 +551,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             self.create_variable_keys()
             add_prop_definition = self._definition["additionalProperties"]
             if add_prop_definition == True:
+                self.l('pass')
                 return
             elif add_prop_definition:
                 properties_keys = list(self._definition.get("properties", {}).keys())
@@ -544,7 +565,8 @@ class CodeGeneratorDraft04(CodeGenerator):
                         )
             else:
                 with self.l('if {variable}_keys:'):
-                    self.exc('{name}: additional properties are not allowed: " + ", ".join({variable}_keys) + "', rule='additionalProperties')
+                    # @note Field names are enclosed in [brackets] to make it easier to detect using regexps.
+                    self.exc('{name}: additional properties are not allowed: " + ", ".join(f\'[{{v}}]\' for v in {variable}_keys) + "', rule='additionalProperties')
 
     def generate_dependencies(self):
         """

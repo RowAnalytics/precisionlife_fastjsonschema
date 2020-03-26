@@ -80,10 +80,12 @@ def is_any_field_error(path, error):
     """
     if len(error.path) > len(path):
         return True
-    if error.rule == 'required':
+    if error.rule == 'required-additionalProperties':
         return True
-    if error.rule == 'additionalProperties':
-        return True
+    #if error.rule == 'required':
+    #    return True
+    #if error.rule == 'additionalProperties':
+    #    return True
     if error.rule == 'propertyNames':
         return True
     return False
@@ -100,12 +102,15 @@ def is_specific_field_error(path, error, field, *, existence_only):
 
     escaped_field = re.escape(field)
 
-    if (error.rule == 'required') and (re.search(f'is missing required properties: {escaped_field}', error.message)):
+    if (error.rule == 'required-additionalProperties') and (re.search(f'\\[{escaped_field}\\]', error.message)):
         return True
 
-    if error.rule == 'additionalProperties':
-        if re.search(f'additional properties are not allowed: {escaped_field}', error.message):
-            return True
+    #if (error.rule == 'required') and (re.search(f'is missing required properties: {escaped_field}', error.message)):
+    #    return True
+
+    #if error.rule == 'additionalProperties':
+    #    if re.search(f'additional properties are not allowed: {escaped_field}', error.message):
+    #        return True
 
     if error.rule == 'propertyNames':
         raise Exception('@todo Figure out what should be a check here.')
@@ -484,3 +489,10 @@ class CodeGenerator:
             return
         self._variables.add(variable_name)
         self.l('{variable}_is_dict = isinstance({variable}, collections.abc.Mapping)')
+
+    def can_emit_required_and_additional(self):
+        variable_name = '{}_required_and_additional'.format(self._variable)
+        if variable_name in self._variables:
+            return False
+        self._variables.add(variable_name)
+        return True

@@ -86,7 +86,7 @@ definition = {
     ),
     (
         [9, 'hello', [1], {'a': 'a', 'x': 'x', 'y': 'y'}, 'str', 5],
-        JsonSchemaException('data[3] is missing required properties: b', value={'a': 'a', 'x': 'x', 'y': 'y'}, name='data[3]', definition=definition['items'][3], rule='required'),
+        JsonSchemaException('data[3] is missing required properties: [b]', value={'a': 'a', 'x': 'x', 'y': 'y', 'c': 'abc'}, name='data[3]', definition=definition['items'][3], rule='required-additionalProperties'),
     ),
     (
         [9, 'hello', [1], {}, 'str', 5],
