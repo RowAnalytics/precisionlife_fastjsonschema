@@ -4,7 +4,8 @@ import tempfile
 from textwrap import dedent
 
 # apt-get install jsonschema json-spec validictory
-import precisionlife_fastjsonschema as fastjsonschema
+import precisionlife_fastjsonschema
+import fastjsonschema
 import jsonschema
 import validictory
 from jsonspec.validators import load
@@ -74,6 +75,7 @@ VALUES_BAD = (
 
 
 fastjsonschema_validate = fastjsonschema.compile(JSON_SCHEMA)
+precisionlife_fastjsonschema_validate = precisionlife_fastjsonschema.compile(JSON_SCHEMA)
 
 
 def fast_compiled(value, _):
@@ -84,6 +86,14 @@ def fast_not_compiled(value, json_schema):
     fastjsonschema.compile(json_schema)(value)
 
 
+def precisionlife_fast_compiled(value, _):
+    precisionlife_fastjsonschema_validate(value)
+
+
+def precisionlife_fast_not_compiled(value, json_schema):
+    precisionlife_fastjsonschema.compile(json_schema)(value)
+
+
 validator_class = jsonschema.validators.validator_for(JSON_SCHEMA)
 validator = validator_class(JSON_SCHEMA)
 
@@ -92,16 +102,27 @@ def jsonschema_compiled(value, _):
     validator.validate(value)
 
 
-with tempfile.NamedTemporaryFile('w', suffix='.py') as tmp_file:
+with tempfile.NamedTemporaryFile('w+t', suffix='.py', dir='.', delete=False) as tmp_file:
     tmp_file.write(fastjsonschema.compile_to_code(JSON_SCHEMA))
     tmp_file.flush()
     spec = importlib.util.spec_from_file_location("temp.performance", tmp_file.name)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
+with tempfile.NamedTemporaryFile('w+t', suffix='.py', dir='.', delete=False) as tmp_file:
+    tmp_file.write(precisionlife_fastjsonschema.compile_to_code(JSON_SCHEMA))
+    tmp_file.flush()
+    spec = importlib.util.spec_from_file_location("precisionlife_temp.performance", tmp_file.name)
+    precisionlife_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(precisionlife_module)
+
 
 def fast_file(value, _):
     module.validate(value)
+
+
+def precisionlife_fast_file(value, _):
+    precisionlife_module.validate(value)
 
 
 jsonspec = load(JSON_SCHEMA)
@@ -120,6 +141,9 @@ def t(func, valid_values=True):
         fast_compiled,
         fast_file,
         fast_not_compiled,
+        precisionlife_fast_compiled,
+        precisionlife_fast_file,
+        precisionlife_fast_not_compiled,
         jsonschema_compiled,
     )
     """
@@ -152,6 +176,15 @@ t('fast_file', valid_values=False)
 
 t('fast_not_compiled')
 t('fast_not_compiled', valid_values=False)
+
+t('precisionlife_fast_compiled')
+t('precisionlife_fast_compiled', valid_values=False)
+
+t('precisionlife_fast_file')
+t('precisionlife_fast_file', valid_values=False)
+
+t('precisionlife_fast_not_compiled')
+t('precisionlife_fast_not_compiled', valid_values=False)
 
 t('jsonschema.validate')
 t('jsonschema.validate', valid_values=False)
