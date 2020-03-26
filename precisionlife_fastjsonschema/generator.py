@@ -285,7 +285,7 @@ class CodeGenerator:
         if not self._compile_regexps:
             return '\n'.join(self._extra_imports_lines + [
                 'import collections',
-                'from fastjsonschema import JsonSchemaException',
+                'from precisionlife_fastjsonschema import JsonSchemaException',
                 '',
                 '',
                 '',
@@ -296,7 +296,7 @@ class CodeGenerator:
         return '\n'.join(self._extra_imports_lines + [
             'import re',
             'import collections',
-            'from fastjsonschema import JsonSchemaException',
+            'from precisionlife_fastjsonschema import JsonSchemaException',
             '',
             '',
             'REGEX_PATTERNS = {',
