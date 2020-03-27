@@ -140,9 +140,14 @@ def raise_best_anyof_error(data, root_object, root_path, errors, special_fields_
     """
     assert len(errors) > 0
 
+    if (special_fields_extractor is None) or not isinstance(data, dict):
+        best_error = max(errors, key=lambda exc: len(exc.path))
+        raise best_error
+
     tag_fields, discriminator_fields, identification_fields = special_fields_extractor(data)
     if len(tag_fields) + len(discriminator_fields) == 0:
-        return
+        best_error = max(errors, key=lambda exc: len(exc.path))
+        raise best_error
 
     for error in errors:
         if is_fundamental_error(root_path, error):
@@ -171,6 +176,9 @@ def raise_best_anyof_error(data, root_object, root_path, errors, special_fields_
     if len(discriminator_fields) > 0:
         name = render_path(root_object, root_path, special_fields_extractor)
         raise JsonSchemaException(name + " discriminator fields not recognized", data, name, definition, 'badDiscriminators', root_path)
+
+    best_error = max(errors, key=lambda exc: len(exc.path))
+    raise best_error
 
 
 common_functions_lines = [
