@@ -3,7 +3,7 @@ import pytest
 from precisionlife_fastjsonschema import JsonSchemaException
 
 
-exc = JsonSchemaException('data must be string', value='{data}', name='data', definition='{definition}', rule='type')
+exc = JsonSchemaException('data must be string, but is a: {value_type}', value='{data}', name='data', definition='{definition}', rule='type')
 @pytest.mark.parametrize('value, expected', [
     (0, exc),
     (None, exc),
@@ -14,7 +14,7 @@ exc = JsonSchemaException('data must be string', value='{data}', name='data', de
     ({}, exc),
 ])
 def test_string(asserter, value, expected):
-    asserter({'type': 'string'}, value, expected)
+    asserter({'type': 'string'}, value, expected, value_type=type(value).__name__)
 
 
 exc = JsonSchemaException('data must be shorter than or equal to 5 characters', value='{data}', name='data', definition='{definition}', rule='maxLength')

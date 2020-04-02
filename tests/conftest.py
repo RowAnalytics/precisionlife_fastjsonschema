@@ -15,7 +15,7 @@ from precisionlife_fastjsonschema.draft07 import CodeGeneratorDraft07
 
 @pytest.fixture
 def asserter():
-    def f(definition, value, expected, formats={}, *, special_fields_extractor=None, ignore_exc_fields=None):
+    def f(definition, value, expected, formats={}, *, special_fields_extractor=None, ignore_exc_fields=None, **kwargs):
         # When test fails, it will show up code.
         code_generator = CodeGeneratorDraft07(definition, formats=formats)
         print(code_generator.func_code)
@@ -30,7 +30,10 @@ def asserter():
                 validator(value, special_fields_extractor=special_fields_extractor)
             ignore_exc_fields = ignore_exc_fields or []
             if 'message' not in ignore_exc_fields:
-                assert exc.value.message == expected.message
+                expected_message = expected.message
+                if kwargs:
+                    expected_message = expected_message.format(**kwargs)
+                assert exc.value.message == expected_message
             if 'value' not in ignore_exc_fields:
                 assert exc.value.value == (value if expected.value == '{data}' else expected.value)
             if 'name' not in ignore_exc_fields:

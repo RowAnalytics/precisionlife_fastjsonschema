@@ -15,7 +15,7 @@ def test_enum(asserter, value, expected):
     asserter({'enum': [1, 2, 'a', "b'c"]}, value, expected)
 
 
-exc = JsonSchemaException('data must be string or number', value='{data}', name='data', definition='{definition}', rule='type')
+exc = JsonSchemaException('data must be string or number, but is a: {value_type}', value='{data}', name='data', definition='{definition}', rule='type')
 @pytest.mark.parametrize('value, expected', [
     (0, 0),
     (None, exc),
@@ -25,7 +25,7 @@ exc = JsonSchemaException('data must be string or number', value='{data}', name=
     ({}, exc),
 ])
 def test_types(asserter, value, expected):
-    asserter({'type': ['string', 'number']}, value, expected)
+    asserter({'type': ['string', 'number']}, value, expected, value_type=type(value).__name__)
 
 
 @pytest.mark.parametrize('value, expected', [
@@ -39,7 +39,7 @@ def test_all_of(asserter, value, expected):
     ]}, value, expected)
 
 
-exc = JsonSchemaException('data must be valid by one of anyOf definition', value='{data}', name='data', definition='{definition}', rule='anyOf')
+exc = JsonSchemaException('data must be string, but is a: {value_type}', value='{data}', name='data', definition={'type': 'string'}, rule='type')
 @pytest.mark.parametrize('value, expected', [
     (0, 0),
     (None, exc),
@@ -52,7 +52,7 @@ def test_any_of(asserter, value, expected):
     asserter({'anyOf': [
         {'type': 'string'},
         {'type': 'number'},
-    ]}, value, expected)
+    ]}, value, expected, value_type=type(value).__name__)
 
 
 exc = JsonSchemaException('data must be valid exactly by one of oneOf definition', value='{data}', name='data', definition='{definition}', rule='oneOf')

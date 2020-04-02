@@ -8,7 +8,7 @@ def number_type(request):
     return request.param
 
 
-exc = JsonSchemaException('data must be {number_type}', None, None, None, None, None)
+exc = JsonSchemaException('data must be {number_type}, but is a: {value_type}', value='{data}', name='data', definition='{definition}', rule='type')
 @pytest.mark.parametrize('value, expected', [
     (-5, -5),
     (0, 0),
@@ -20,9 +20,7 @@ exc = JsonSchemaException('data must be {number_type}', None, None, None, None, 
     ({}, exc),
 ])
 def test_number(asserter, number_type, value, expected):
-    if isinstance(expected, JsonSchemaException):
-        expected = JsonSchemaException(expected.message.format(number_type=number_type), value='{data}', name='data', definition='{definition}', rule='type')
-    asserter({'type': number_type}, value, expected)
+    asserter({'type': number_type}, value, expected, number_type=number_type, value_type=type(value).__name__)
 
 
 exc = JsonSchemaException('data must be smaller than or equal to 10', value='{data}', name='data', definition='{definition}', rule='maximum')
@@ -148,7 +146,7 @@ def test_multiple_of_float_1_5(asserter, value, expected):
 def test_integer_is_not_number(asserter, value):
     asserter({
         'type': 'integer',
-    }, value, JsonSchemaException('data must be integer', value='{data}', name='data', definition='{definition}', rule='type'))
+    }, value, JsonSchemaException('data must be integer, but is a: float', value='{data}', name='data', definition='{definition}', rule='type'))
 
 
 @pytest.mark.parametrize('value', (

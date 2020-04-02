@@ -68,9 +68,11 @@ class CodeGeneratorDraft06(CodeGeneratorDraft04):
 
         if ('number' in types or 'integer' in types) and 'boolean' not in types:
             extra += ' or isinstance({variable}, bool)'.format(variable=self._variable)
+        if ('array' in types) and ('string' not in types):
+            extra = ' or isinstance({variable}, str)'.format(variable=self._variable)
 
         with self.l('if not isinstance({variable}, ({})){}:', python_types, extra):
-            self.exc('{name} must be {}', ' or '.join(types), rule='type')
+            self.exc('{name} must be {}, but is a: " + type({variable}).__name__ + "', ' or '.join(types), rule='type')
 
     def generate_exclusive_minimum(self):
         with self.l('if isinstance({variable}, (int, float)):'):

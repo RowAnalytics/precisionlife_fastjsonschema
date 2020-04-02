@@ -91,7 +91,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             extra = ' or isinstance({variable}, str)'.format(variable=self._variable)
 
         with self.l('if not isinstance({variable}, ({})){}:', python_types, extra):
-            self.exc('{name} must be {}', ' or '.join(types), rule='type')
+            self.exc('{name} must be {}, but is a: " + type({variable}).__name__ + "', ' or '.join(types), rule='type')
 
     def generate_enum(self):
         """

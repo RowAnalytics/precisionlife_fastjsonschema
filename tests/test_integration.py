@@ -82,7 +82,7 @@ definition = {
     ),
     (
         [9, 'hello', [1, 2, 3], {'a': 'a', 'b': 'b', 'c': 'xy'}, 'str', 5],
-        JsonSchemaException('data[2][1] must be string', value=2, name='data[2][1]', definition={'type': 'string'}, rule='type'),
+        JsonSchemaException('data[2][1] must be string, but is a: int', value=2, name='data[2][1]', definition={'type': 'string'}, rule='type'),
     ),
     (
         [9, 'hello', [1], {'a': 'a', 'x': 'x', 'y': 'y'}, 'str', 5],
