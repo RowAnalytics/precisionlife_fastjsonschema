@@ -1,6 +1,6 @@
 import pytest
 
-from precisionlife_fastjsonschema import JsonSchemaException
+from precisionlife_fastjsonschema import JsonSchemaValidationException
 
 
 definition = {
@@ -70,35 +70,35 @@ definition = {
     ),
     (
         [10, 'world', [1], {'a': 'a', 'b': 'b', 'c': 'xy'}, 'str', 5],
-        JsonSchemaException('data[0] must be smaller than 10', value=10, name='data[0]', definition=definition['items'][0], rule='maximum'),
+        JsonSchemaValidationException('must be smaller than 10', value=10, _rendered_path='data[0]', definition=definition['items'][0], rule='maximum'),
     ),
     (
         [9, 'xxx', [1], {'a': 'a', 'b': 'b', 'c': 'xy'}, 'str', 5],
-        JsonSchemaException('data[1] must be one of [\'hello\', \'world\']', value='xxx', name='data[1]', definition=definition['items'][1], rule='enum'),
+        JsonSchemaValidationException('must be one of [\'hello\', \'world\']', value='xxx', _rendered_path='data[1]', definition=definition['items'][1], rule='enum'),
     ),
     (
         [9, 'hello', [], {'a': 'a', 'b': 'b', 'c': 'xy'}, 'str', 5],
-        JsonSchemaException('data[2] must contain at least 1 items', value=[], name='data[2]', definition=definition['items'][2], rule='minItems'),
+        JsonSchemaValidationException('must contain at least 1 items', value=[], _rendered_path='data[2]', definition=definition['items'][2], rule='minItems'),
     ),
     (
         [9, 'hello', [1, 2, 3], {'a': 'a', 'b': 'b', 'c': 'xy'}, 'str', 5],
-        JsonSchemaException('data[2][1] must be string, but is a: int', value=2, name='data[2][1]', definition={'type': 'string'}, rule='type'),
+        JsonSchemaValidationException('must be string, but is a: int', value=2, _rendered_path='data[2][1]', definition={'type': 'string'}, rule='type'),
     ),
     (
         [9, 'hello', [1], {'a': 'a', 'x': 'x', 'y': 'y'}, 'str', 5],
-        JsonSchemaException('data[3] is missing required properties: [b]', value={'a': 'a', 'x': 'x', 'y': 'y', 'c': 'abc'}, name='data[3]', definition=definition['items'][3], rule='required-additionalProperties'),
+        JsonSchemaValidationException('missing/extra properties', missing_fields=['b'], value={'a': 'a', 'x': 'x', 'y': 'y', 'c': 'abc'}, _rendered_path='data[3]', definition=definition['items'][3], rule='required-additionalProperties'),
     ),
     (
         [9, 'hello', [1], {}, 'str', 5],
-        JsonSchemaException('data[3] must contain at least 3 properties', value={}, name='data[3]', definition=definition['items'][3], rule='minProperties'),
+        JsonSchemaValidationException('must contain at least 3 properties', value={}, _rendered_path='data[3]', definition=definition['items'][3], rule='minProperties'),
     ),
     (
         [9, 'hello', [1], {'a': 'a', 'b': 'b', 'x': 'x'}, None, 5],
-        JsonSchemaException('data[4] must not be valid by not definition', value=None, name='data[4]', definition=definition['items'][4], rule='not'),
+        JsonSchemaValidationException('must not be valid by not definition', value=None, _rendered_path='data[4]', definition=definition['items'][4], rule='not'),
     ),
     (
         [9, 'hello', [1], {'a': 'a', 'b': 'b', 'x': 'x'}, 42, 15],
-        JsonSchemaException('data[5] must be valid exactly by one of oneOf definition', value=15, name='data[5]', definition=definition['items'][5], rule='oneOf'),
+        JsonSchemaValidationException('must be valid exactly by one of oneOf definition', value=15, _rendered_path='data[5]', definition=definition['items'][5], rule='oneOf'),
     ),
 ])
 def test_integration(asserter, value, expected):

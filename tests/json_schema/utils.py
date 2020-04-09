@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from urllib.request import urlopen
 
-from precisionlife_fastjsonschema import RefResolver, JsonSchemaException, compile, _get_code_generator_class
+from precisionlife_fastjsonschema import RefResolver, JsonSchemaValidationException, compile, _get_code_generator_class
 
 
 REMOTES = {
@@ -81,7 +81,7 @@ def template_test(schema_version, schema, data, is_valid):
     try:
         result = validate(data)
         print('Validate result:', result)
-    except JsonSchemaException:
+    except JsonSchemaValidationException:
         if is_valid:
             raise
     else:

@@ -53,7 +53,7 @@ class CodeGeneratorDraft07(CodeGeneratorDraft06):
                 self._variable_path,
                 clear_variables=True
             )
-        with self.l('except JsonSchemaException:'):
+        with self.l('except JsonSchemaValidationException:'):
             if 'else' in self._definition:
                 self.generate_func_code_block(
                     self._definition['else'],
@@ -88,7 +88,7 @@ class CodeGeneratorDraft07(CodeGeneratorDraft06):
                     self.l('import base64')
                     self.l('{variable} = base64.b64decode({variable})')
                 with self.l('except Exception:'):
-                    self.exc('{name} must be encoded by base64')
+                    self.exc('must be encoded by base64')
                 with self.l('if {variable} == "":'):
                     self.exc('contentEncoding must be base64')
 
@@ -107,10 +107,10 @@ class CodeGeneratorDraft07(CodeGeneratorDraft06):
                 with self.l('try:'):
                     self.l('{variable} = {variable}.decode("utf-8")')
                 with self.l('except Exception:'):
-                    self.exc('{name} must encoded by utf8')
+                    self.exc('must encoded by utf8')
             with self.l('if isinstance({variable}, str):'):
                 with self.l('try:'):
                     self.l('import json')
                     self.l('{variable} = json.loads({variable})')
                 with self.l('except Exception:'):
-                    self.exc('{name} must be valid JSON')
+                    self.exc('must be valid JSON')
