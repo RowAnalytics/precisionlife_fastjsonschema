@@ -1,6 +1,6 @@
 import pytest
 
-from precisionlife_fastjsonschema import JsonSchemaException
+from precisionlife_fastjsonschema import JsonSchemaValidationException
 
 
 @pytest.mark.parametrize('definition, rule, expected_rule_definition', [
@@ -12,5 +12,5 @@ from precisionlife_fastjsonschema import JsonSchemaException
     (None, 'type', None),
 ])
 def test_exception_rule_definition(definition, rule, expected_rule_definition):
-    exc = JsonSchemaException('msg', None, None, definition=definition, rule=rule)
+    exc = JsonSchemaValidationException('msg', None, definition=definition, rule=rule)
     assert exc.rule_definition == expected_rule_definition

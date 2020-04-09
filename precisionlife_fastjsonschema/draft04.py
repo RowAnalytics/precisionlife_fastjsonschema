@@ -91,7 +91,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             extra = ' or isinstance({variable}, str)'.format(variable=self._variable)
 
         with self.l('if not isinstance({variable}, ({})){}:', python_types, extra):
-            self.exc('{name} must be {}, but is a: " + type({variable}).__name__ + "', ' or '.join(types), rule='type')
+            self.exc('must be {}, but is a: " + type({variable}).__name__ + "', ' or '.join(types), rule='type')
 
     def generate_enum(self):
         """
@@ -107,7 +107,7 @@ class CodeGeneratorDraft04(CodeGenerator):
         if not isinstance(enum, (list, tuple)):
             raise JsonSchemaDefinitionException('enum must be an array')
         with self.l('if {variable} not in {enum}:'):
-            self.exc('{name} must be one of {}', self.e(enum), rule='enum')
+            self.exc('must be one of {}', self.e(enum), rule='enum')
 
     def generate_all_of(self):
         """
@@ -152,7 +152,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 with self.l('try:', optimize=False):
                     self.generate_func_code_block(definition_item, self._variable, self._variable_path, clear_variables=True)
                     self.l('{variable}_any_of_count += 1')
-                with self.l('except JsonSchemaException as exc:'):
+                with self.l('except JsonSchemaValidationException as exc:'):
                     self.l('{variable}_errors.append(exc)')
 
         with self.l('if not {variable}_any_of_count:', optimize=False):
@@ -160,7 +160,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             #with self.l('if special_fields_extractor and {variable}_is_dict:'):
             name_path = prepare_path(self._variable_path)
             self.l('raise_best_anyof_error(data, root_object, root_path + ' + name_path + ', {variable}_errors, special_fields_extractor, {definition})', definition=repr(self._definition))
-            #self.exc('{name} must be valid by one of anyOf definition. Candidates:\n  -- " + "\n  -- ".join(str(error) for error in {variable}_errors) + "', rule='anyOf')
+            #self.exc('must be valid by one of anyOf definition. Candidates:\n  -- " + "\n  -- ".join(str(error) for error in {variable}_errors) + "', rule='anyOf')
 
     def generate_one_of(self):
         """
@@ -185,10 +185,10 @@ class CodeGeneratorDraft04(CodeGenerator):
                 with self.l('try:', optimize=False):
                     self.generate_func_code_block(definition_item, self._variable, self._variable_path, clear_variables=True)
                     self.l('{variable}_one_of_count += 1')
-                self.l('except JsonSchemaException: pass')
+                self.l('except JsonSchemaValidationException: pass')
 
         with self.l('if {variable}_one_of_count != 1:'):
-            self.exc('{name} must be valid exactly by one of oneOf definition', rule='oneOf')
+            self.exc('must be valid exactly by one of oneOf definition', rule='oneOf')
 
     def generate_not(self):
         """
@@ -205,18 +205,18 @@ class CodeGeneratorDraft04(CodeGenerator):
         """
         not_definition = self._definition['not']
         if not_definition is True:
-            self.exc('{name} must not be there', rule='not')
+            self.exc('must not be there', rule='not')
         elif not_definition is False:
             return
         elif not not_definition:
             with self.l('if {}:', self._variable):
-                self.exc('{name} must not be valid by not definition', rule='not')
+                self.exc('must not be valid by not definition', rule='not')
         else:
             with self.l('try:', optimize=False):
                 self.generate_func_code_block(not_definition, self._variable, self._variable_path)
-            self.l('except JsonSchemaException: pass')
+            self.l('except JsonSchemaValidationException: pass')
             with self.l('else:'):
-                self.exc('{name} must not be valid by not definition', rule='not')
+                self.exc('must not be valid by not definition', rule='not')
 
     def generate_min_length(self):
         with self.l('if isinstance({variable}, str):'):
@@ -224,7 +224,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             if not isinstance(self._definition['minLength'], int):
                 raise JsonSchemaDefinitionException('minLength must be a number')
             with self.l('if {variable}_len < {minLength}:'):
-                self.exc('{name} must be longer than or equal to {minLength} characters', rule='minLength')
+                self.exc('must be longer than or equal to {minLength} characters', rule='minLength')
 
     def generate_max_length(self):
         with self.l('if isinstance({variable}, str):'):
@@ -232,7 +232,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             if not isinstance(self._definition['maxLength'], int):
                 raise JsonSchemaDefinitionException('maxLength must be a number')
             with self.l('if {variable}_len > {maxLength}:'):
-                self.exc('{name} must be shorter than or equal to {maxLength} characters', rule='maxLength')
+                self.exc('must be shorter than or equal to {maxLength} characters', rule='maxLength')
 
     def generate_pattern(self):
         with self.l('if isinstance({variable}, str):'):
@@ -241,7 +241,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             end_of_string_fixed_pattern = DOLLAR_FINDER.sub(r'\\Z', pattern)
             self._compile_regexps[pattern] = re.compile(end_of_string_fixed_pattern)
             with self.l('if not REGEX_PATTERNS[{}].search({variable}):', repr(pattern)):
-                self.exc('{name} must match pattern {}', safe_pattern, rule='pattern')
+                self.exc('must match pattern {}', safe_pattern, rule='pattern')
 
     def generate_format(self):
         """
@@ -262,7 +262,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                     self._generate_format(format_, format_ + '_re_pattern', custom_format)
                 else:
                     with self.l('if not custom_formats["{}"]({variable}):', format_):
-                        self.exc('{name} must be {}', format_, rule='format')
+                        self.exc('must be {}', format_, rule='format')
             elif format_ in self.FORMAT_REGEXS:
                 format_regex = self.FORMAT_REGEXS[format_]
                 self._generate_format(format_, format_ + '_re_pattern', format_regex)
@@ -271,7 +271,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 with self.l('try:', optimize=False):
                     self.l('re.compile({variable})')
                 with self.l('except Exception:'):
-                    self.exc('{name} must be a valid regex', rule='format')
+                    self.exc('must be a valid regex', rule='format')
             else:
                 raise JsonSchemaDefinitionException('Unknown format: {}'.format(format_))
 
@@ -281,7 +281,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             if not regexp_name in self._compile_regexps:
                 self._compile_regexps[regexp_name] = re.compile(regexp)
             with self.l('if not REGEX_PATTERNS["{}"].match({variable}):', regexp_name):
-                self.exc('{name} must be {}', format_name, rule='format')
+                self.exc('must be {}', format_name, rule='format')
 
     def generate_minimum(self):
         with self.l('if isinstance({variable}, (int, float)):'):
@@ -289,10 +289,10 @@ class CodeGeneratorDraft04(CodeGenerator):
                 raise JsonSchemaDefinitionException('minimum must be a number')
             if self._definition.get('exclusiveMinimum', False):
                 with self.l('if {variable} <= {minimum}:'):
-                    self.exc('{name} must be bigger than {minimum}', rule='minimum')
+                    self.exc('must be bigger than {minimum}', rule='minimum')
             else:
                 with self.l('if {variable} < {minimum}:'):
-                    self.exc('{name} must be bigger than or equal to {minimum}', rule='minimum')
+                    self.exc('must be bigger than or equal to {minimum}', rule='minimum')
 
     def generate_maximum(self):
         with self.l('if isinstance({variable}, (int, float)):'):
@@ -300,10 +300,10 @@ class CodeGeneratorDraft04(CodeGenerator):
                 raise JsonSchemaDefinitionException('maximum must be a number')
             if self._definition.get('exclusiveMaximum', False):
                 with self.l('if {variable} >= {maximum}:'):
-                    self.exc('{name} must be smaller than {maximum}', rule='maximum')
+                    self.exc('must be smaller than {maximum}', rule='maximum')
             else:
                 with self.l('if {variable} > {maximum}:'):
-                    self.exc('{name} must be smaller than or equal to {maximum}', rule='maximum')
+                    self.exc('must be smaller than or equal to {maximum}', rule='maximum')
 
     def generate_multiple_of(self):
         with self.l('if isinstance({variable}, (int, float)):'):
@@ -318,7 +318,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             else:
                 self.l('quotient = {variable} / {multipleOf}')
             with self.l('if int(quotient) != quotient:'):
-                self.exc('{name} must be multiple of {multipleOf}', rule='multipleOf')
+                self.exc('must be multiple of {multipleOf}', rule='multipleOf')
 
     def generate_min_items(self):
         self.create_variable_is_list()
@@ -327,7 +327,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 raise JsonSchemaDefinitionException('minItems must be a number')
             self.create_variable_with_length()
             with self.l('if {variable}_len < {minItems}:'):
-                self.exc('{name} must contain at least {minItems} items', rule='minItems')
+                self.exc('must contain at least {minItems} items', rule='minItems')
 
     def generate_max_items(self):
         self.create_variable_is_list()
@@ -336,7 +336,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 raise JsonSchemaDefinitionException('maxItems must be a number')
             self.create_variable_with_length()
             with self.l('if {variable}_len > {maxItems}:'):
-                self.exc('{name} must contain less than or equal to {maxItems} items', rule='maxItems')
+                self.exc('must contain less than or equal to {maxItems} items', rule='maxItems')
 
     def generate_unique_items(self):
         """
@@ -357,7 +357,7 @@ class CodeGeneratorDraft04(CodeGenerator):
         with self.l('if {variable}_is_list:'):
             self.create_variable_with_length()
             with self.l('if {variable}_len > len(set(str({variable}_x) for {variable}_x in {variable})):'):
-                self.exc('{name} must contain unique items', rule='uniqueItems')
+                self.exc('must contain unique items', rule='uniqueItems')
 
     def generate_items(self):
         """
@@ -386,7 +386,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             self.create_variable_with_length()
             if items_definition is False:
                 with self.l('if {variable}:'):
-                    self.exc('{name} must be empty, because items definition is False', rule='items')
+                    self.exc('must be empty, because items definition is False', rule='items')
             elif isinstance(items_definition, list):
                 for idx, item_definition in enumerate(items_definition):
                     with self.l('if {variable}_len > {}:', idx):
@@ -402,7 +402,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 if 'additionalItems' in self._definition:
                     if self._definition['additionalItems'] is False:
                         with self.l('if {variable}_len > {}:', len(items_definition)):
-                            self.exc('{name} must contain only specified items', rule='items')
+                            self.exc('must contain only specified items', rule='items')
                     else:
                         with self.l('for {variable}_x, {variable}_item in enumerate({variable}[{0}:], {0}):', len(items_definition)):
                             self.generate_func_code_block(
@@ -426,7 +426,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 raise JsonSchemaDefinitionException('minProperties must be a number')
             self.create_variable_with_length()
             with self.l('if {variable}_len < {minProperties}:'):
-                self.exc('{name} must contain at least {minProperties} properties', rule='minProperties')
+                self.exc('must contain at least {minProperties} properties', rule='minProperties')
 
     def generate_max_properties(self):
         self.create_variable_is_dict()
@@ -435,26 +435,27 @@ class CodeGeneratorDraft04(CodeGenerator):
                 raise JsonSchemaDefinitionException('maxProperties must be a number')
             self.create_variable_with_length()
             with self.l('if {variable}_len > {maxProperties}:'):
-                self.exc('{name} must contain less than or equal to {maxProperties} properties', rule='maxProperties')
+                self.exc('must contain less than or equal to {maxProperties} properties', rule='maxProperties')
 
     def generate_required_and_additional(self):
         if not self.can_emit_required_and_additional():
             return
-        self.l('{variable}_ra_msgs = []')
+        self.l('{variable}_ra_missing = []')
+        self.l('{variable}_ra_extra = []')
         if 'required' in self._definition:
             with self.l('try:'):
                 self._generate_required()
-            with self.l('except Exception as exc:'):
-                self.l('{variable}_ra_msgs.append(exc.message)')
+            with self.l('except JsonSchemaValidationException as exc:'):
+                self.l('{variable}_ra_missing.extend(exc.missing_fields)')
         if 'additionalProperties' in self._definition:
             with self.l('try:'):
                 self._generate_additional_properties()
             with self.l('except Exception as exc:'):
                 with self.l('if exc.rule != \'additionalProperties\':'):
                     self.l('raise')
-                self.l('{variable}_ra_msgs.append(exc.message)')
-        with self.l('if {variable}_ra_msgs:'):
-            self.exc('" + ", ".join({variable}_ra_msgs ) + "', rule='required-additionalProperties')
+                self.l('{variable}_ra_extra.extend(exc.extra_fields)')
+        with self.l('if {variable}_ra_missing or {variable}_ra_extra:'):
+            self.exc('missing/extra properties', rule='required-additionalProperties', missing_fields='{variable}_ra_missing', extra_fields='{variable}_ra_extra')
 
     def _generate_required(self):
         self.create_variable_is_dict()
@@ -463,8 +464,7 @@ class CodeGeneratorDraft04(CodeGenerator):
                 raise JsonSchemaDefinitionException('required must be an array')
             with self.l('if not all(prop in {variable} for prop in {required}):'):
                 self.l('{variable}_missing_props = sorted(set({required}) - {variable}.keys())')
-                # @note Field names are enclosed in [brackets] to make it easier to detect using regexps.
-                self.exc('{name} is missing required properties: " + ", ".join(f\'[{{v}}]\' for v in {variable}_missing_props) + "', rule='required')
+                self.exc('is missing required properties', rule='required', missing_fields='{variable}_missing_props')
 
     def generate_properties(self):
         """
@@ -566,7 +566,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             else:
                 with self.l('if {variable}_keys:'):
                     # @note Field names are enclosed in [brackets] to make it easier to detect using regexps.
-                    self.exc('{name}: additional properties are not allowed: " + ", ".join(f\'[{{v}}]\' for v in {variable}_keys) + "', rule='additionalProperties')
+                    self.exc('additional properties are not allowed', rule='additionalProperties', extra_fields='{variable}_keys')
 
     def generate_dependencies(self):
         """
@@ -594,10 +594,10 @@ class CodeGeneratorDraft04(CodeGenerator):
                     continue
                 with self.l('if "{}" in {variable}_keys:', self.e(key)):
                     if values is False:
-                        self.exc('{} in {name} must not be there', key, rule='dependencies')
+                        self.exc('{} must not be there', key, rule='dependencies')
                     elif isinstance(values, list):
                         for value in values:
                             with self.l('if "{}" not in {variable}_keys:', self.e(value)):
-                                self.exc('{name} missing dependency {} for {}', self.e(value), self.e(key), rule='dependencies')
+                                self.exc('missing dependency {} for {}', self.e(value), self.e(key), rule='dependencies')
                     else:
                         self.generate_func_code_block(values, self._variable, self._variable_path, clear_variables=True)

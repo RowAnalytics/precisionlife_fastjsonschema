@@ -3,7 +3,7 @@ from collections import OrderedDict
 import re
 import inspect
 
-from .exceptions import JsonSchemaException, JsonSchemaDefinitionException
+from .exceptions import JsonSchemaValidationException, JsonSchemaDefinitionException
 from .indent import indent
 from .ref_resolver import RefResolver
 
@@ -18,9 +18,9 @@ def prepare_path(path):
     """
     Returns path as a string that can be evaluated.
     So for this input: ['1', 'data_x', '"text"']
-    returns: [1, data_x, "text"]
+    returns: '[1, data_x, "text"]'
     :param path:    List of strings, that are code fragments.
-                    Those will be array indexes (stringified), variable names and field names in quotes.
+                    Those should be stringified array indexes ('1'), variable names ('data_x') and field names in quotes ('"text"').
     :return: String.
     """
     result = "["
@@ -31,52 +31,11 @@ def prepare_path(path):
     return result
 
 
-def render_path(obj, path, special_fields_extractor):
-    """
-    Returns path as a string that can be displayed to the user.
-    So for this input: [1, 'data', 'text']
-    returns: data[1].data.text
-    :param obj:     Object the path is in.
-    :param path:    List of strings or ints (actual runtime values, not code fragments).
-                    Ints are array indexes, strings are field names.
-    :param special_fields_extractor: Function that given a Mapping returns (tag_fields, discriminator_fields, identification_fields) - lists of fields in given category.
-    :return: String.
-    """
-    result = "data"
-
-    def add_context(o):
-        nonlocal result
-
-        if special_fields_extractor is None:
-            return
-
-        if not isinstance(o, collections.abc.Mapping):
-            return
-
-        tag_fields, discriminator_fields, identification_fields = special_fields_extractor(o)
-        if len(tag_fields) + len(discriminator_fields) + len(identification_fields) == 0:
-            return
-
-        id_fields = discriminator_fields + identification_fields
-        id_data = ["{}={}".format(field, o[field]) for field in id_fields]
-        result += "<"
-        result += ",".join(tag_fields + id_data)
-        result += ">"
-
-    cur_obj = obj
-    add_context(cur_obj)
-    for element in path:
-        cur_obj = cur_obj[element]
-        result += ("[{}]" if isinstance(element, int) else ".{}").format(element)
-        add_context(cur_obj)
-    return result
-
-
 def is_any_field_error(path, error):
     """
     Returns True if given error is related to any field.
     :param path:    Path to current element.
-    :param error:   JsonSchemaException from validating schema of that element.
+    :param error:   JsonSchemaValidationException from validating schema of that element.
     """
     if len(error.path) > len(path):
         return True
@@ -100,10 +59,11 @@ def is_specific_field_error(path, error, field, *, existence_only):
         if (len(error.path) > len(path)) and (error.path[len(path)] == field):
             return True
 
-    escaped_field = re.escape(field)
-
-    if (error.rule == 'required-additionalProperties') and (re.search(f'\\[{escaped_field}\\]', error.message)):
-        return True
+    if error.rule == 'required-additionalProperties':
+        if field in error.missing_fields:
+            return True
+        if field in error.extra_fields:
+            return True
 
     #if (error.rule == 'required') and (re.search(f'is missing required properties: {escaped_field}', error.message)):
     #    return True
@@ -169,22 +129,17 @@ def raise_best_anyof_error(data, root_object, root_path, errors, special_fields_
 
     # If object has tag fields, we know those were not accepted by any schema, so we raise an error for a tag field.
     if len(tag_fields) > 0:
-        name = render_path(root_object, root_path, special_fields_extractor)
-        raise JsonSchemaException(name + " tag fields not recognized", data, name, definition, 'unknownTags', root_path)
+        raise JsonSchemaValidationException('tag fields not recognized', data, definition, 'unknownTags', root_path, root_object, special_fields_extractor)
 
     # If object has any discriminator fields, we know those were not accepted by any schema, so complain that discriminators were not matched.
     if len(discriminator_fields) > 0:
-        name = render_path(root_object, root_path, special_fields_extractor)
-        raise JsonSchemaException(name + " discriminator fields not recognized", data, name, definition, 'badDiscriminators', root_path)
+        raise JsonSchemaValidationException('discriminator fields not recognized', data, definition, 'badDiscriminators', root_path, root_object, special_fields_extractor)
 
     best_error = max(errors, key=lambda exc: len(exc.path))
     raise best_error
 
 
 common_functions_lines = [
-    *inspect.getsourcelines(render_path)[0],
-    '',
-    '',
     *inspect.getsourcelines(is_any_field_error)[0],
     '',
     '',
@@ -274,8 +229,7 @@ class CodeGenerator:
             REGEX_PATTERNS=self._compile_regexps,
             collections=collections,
             re=re,
-            JsonSchemaException=JsonSchemaException,
-            render_path=render_path,
+            JsonSchemaValidationException=JsonSchemaValidationException,
             is_any_field_error=is_any_field_error,
             is_specific_field_error=is_specific_field_error,
             is_fundamental_error=is_fundamental_error,
@@ -293,7 +247,7 @@ class CodeGenerator:
         if not self._compile_regexps:
             return '\n'.join(self._extra_imports_lines + [
                 'import collections',
-                'from precisionlife_fastjsonschema import JsonSchemaException',
+                'from precisionlife_fastjsonschema import JsonSchemaValidationException',
                 '',
                 '',
                 '',
@@ -304,7 +258,7 @@ class CodeGenerator:
         return '\n'.join(self._extra_imports_lines + [
             'import re',
             'import collections',
-            'from precisionlife_fastjsonschema import JsonSchemaException',
+            'from precisionlife_fastjsonschema import JsonSchemaValidationException',
             '',
             '',
             'REGEX_PATTERNS = {',
@@ -411,23 +365,20 @@ class CodeGenerator:
 
         .. code-block:: python
 
-            self.l('if {variable} not in {enum}: raise JsonSchemaException("Wrong!")')
+            self.l('if {variable} not in {enum}: raise JsonSchemaValidationException("Wrong!")')
 
         When you want to indent block, use it as context manager. For example:
 
         .. code-block:: python
 
             with self.l('if {variable} not in {enum}:'):
-                self.l('raise JsonSchemaException("Wrong!")')
+                self.l('raise JsonSchemaValidationException("Wrong!")')
         """
         spaces = ' ' * self.INDENT * self._indent
-
-        name = '" + render_path(root_object, root_path + {path}, special_fields_extractor) + "'.format(path=prepare_path(self._variable_path))
 
         context = dict(
             self._definition or {},
             variable=self._variable,
-            name=name,
             **kwds
         )
         line = line.format(*args, **context)
@@ -441,15 +392,20 @@ class CodeGenerator:
 
         .. code-block:: python
 
-            self.l('raise JsonSchemaException("Variable: {}")', self.e(variable))
+            self.l('raise JsonSchemaValidationException("Variable: {}")', self.e(variable))
         """
         return str(string).replace('"', '\\"')
 
-    def exc(self, msg, *args, rule=None):
+    def exc(self, msg, *args, rule=None, missing_fields=None, extra_fields=None):
         """
         """
         name_path = prepare_path(self._variable_path)
-        msg = 'raise JsonSchemaException("'+msg+'", value={variable}, name="{name}", definition={definition}, rule={rule}, path=root_path + ' + name_path + ')'
+        msg = 'raise JsonSchemaValidationException("'+msg+'", value={variable}, definition={definition}, rule={rule}, path=root_path + ' + name_path + ', root_object=root_object, special_fields_extractor=special_fields_extractor'
+        if missing_fields:
+            msg += f', missing_fields={missing_fields}'
+        if extra_fields:
+            msg += f', extra_fields={extra_fields}'
+        msg += ')'
         self.l(msg, *args, definition=repr(self._definition), rule=repr(rule))
 
     def create_variable_with_length(self):

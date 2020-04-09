@@ -1,9 +1,9 @@
 import pytest
 
-from precisionlife_fastjsonschema import JsonSchemaException
+from precisionlife_fastjsonschema import JsonSchemaValidationException
 
 
-exc = JsonSchemaException('data must be boolean, but is a: {value_type}', value='{data}', name='data', definition='{definition}', rule='type')
+exc = JsonSchemaValidationException('must be boolean, but is a: {value_type}', value='{data}', _rendered_path='data', definition='{definition}', rule='type')
 @pytest.mark.parametrize('value, expected', [
     (0, exc),
     (None, exc),
