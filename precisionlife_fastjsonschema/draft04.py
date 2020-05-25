@@ -208,12 +208,11 @@ class CodeGeneratorDraft04(CodeGenerator):
             self.exc('must not be there', rule='not')
         elif not_definition is False:
             return
-        elif not not_definition:
-            with self.l('if {}:', self._variable):
-                self.exc('must not be valid by not definition', rule='not')
         else:
             with self.l('try:', optimize=False):
                 self.generate_func_code_block(not_definition, self._variable, self._variable_path)
+                if not not_definition:
+                    self.l('pass')  # Adding that in case generate_func_code_block() generated nothing.
             self.l('except JsonSchemaValidationException: pass')
             with self.l('else:'):
                 self.exc('must not be valid by not definition', rule='not')
