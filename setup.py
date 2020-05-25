@@ -33,7 +33,7 @@ setup(
         ],
     },
 
-    url='https://github.com/RowAnalytics/precisionlife-fastjsonschema',
+    url='https://github.com/RowAnalytics/precisionlife_fastjsonschema',
     author='Zbigniew Skowron',
     author_email='zbigniew@precisionlife.com',
     description='Modified fastest Python implementation of JSON schema',
