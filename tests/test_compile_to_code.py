@@ -2,7 +2,8 @@ import os
 import pytest
 import shutil
 
-from precisionlife_fastjsonschema import compile_to_code, compile as compile_spec
+from precisionlife_fastjsonschema import compile_to_code, compile as compile_spec, JsonSchemaValidationException
+
 
 @pytest.yield_fixture(autouse=True)
 def run_around_tests():
@@ -84,3 +85,45 @@ def test_compile_complex_one_of_all_of():
             }
         ]
     })
+
+
+validationTestTypesSchema = {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "namedTypeArray_string": {
+      "$ref": "#/definitions/NamedTypeArray_string"
+    },
+    "namedTypeArray<string[]>": {
+      "$ref": "#/definitions/NamedTypeArray<string[]>"
+    }
+  },
+  "definitions": {
+    "NamedTypeArray_string": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/NamedType_string"
+      }
+    },
+    "NamedTypeArray<string[]>": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/NamedType<string[]>"
+      }
+    },
+    "NamedType_string": {
+      "type": "string",
+    },
+    "NamedType<string[]>": {
+      "type": "number",
+    }
+  }
+}
+
+@pytest.mark.parametrize('value, expected', [
+    ({ 'namedTypeArray_string': [ 'str', 'str' ], 'namedTypeArray<string[]>': [ 1, 2 ] }, { 'namedTypeArray_string': [ 'str', 'str' ], 'namedTypeArray<string[]>': [ 1, 2 ] }),
+    ({ 'namedTypeArray_string': [ 'str', 'str' ], 'namedTypeArray<string[]>': [ 'str', 'str' ] }, JsonSchemaValidationException('must be number, but is a: str', value=None, _rendered_path='data.namedTypeArray<string[]>[0]', definition=None, rule='type')),
+    ({ 'namedTypeArray_string': [ 1, 2 ], 'namedTypeArray<string[]>': [ 1, 2 ] }, JsonSchemaValidationException('must be string, but is a: int', value=None, _rendered_path='data.namedTypeArray_string[0]', definition=None, rule='type')),
+])
+def test_unique_name_generator(asserter, value, expected):
+    asserter(validationTestTypesSchema, value, expected, ignore_exc_fields=['value', 'definition'])

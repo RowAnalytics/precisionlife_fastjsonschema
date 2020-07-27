@@ -114,6 +114,11 @@ class RefResolver:
         self.handlers = handlers
         self.walk(schema)
 
+        # Dictionary used to make sure we will generate unique names for generated functions.
+        self.unique_name_registry = {}
+        # Set of names that are taken (equivalent to set(self.unique_name_registry.values())).
+        self.unique_names_taken = set()
+
     @classmethod
     def from_schema(cls, schema, handlers={}, **kwargs):
         """
@@ -174,10 +179,22 @@ class RefResolver:
         """
         Get current scope and return it as a valid function name.
         """
-        name = 'validate_' + unquote(self.resolution_scope).replace('~1', '_').replace('~0', '_').replace('"', '')
-        name = re.sub(r'($[^a-zA-Z]|[^a-zA-Z0-9])', '_', name)
-        name = name.lower().rstrip('_')
-        return name
+        if self.resolution_scope not in self.unique_name_registry:
+            name = 'validate_' + unquote(self.resolution_scope)
+            name = name.replace('~1', '_').replace('~0', '_').replace('"', '')
+            name = re.sub(r'($[^a-zA-Z]|[^a-zA-Z0-9])', '_', name)
+            name = name.lower().rstrip('_')
+
+            unique_name = name
+            idx = -1
+            while unique_name in self.unique_names_taken:
+                idx += 1
+                unique_name = f'{name}_{idx}'
+
+            self.unique_name_registry[self.resolution_scope] = unique_name
+            self.unique_names_taken.add(unique_name)
+
+        return self.unique_name_registry[self.resolution_scope]
 
     def walk(self, node: dict):
         """
