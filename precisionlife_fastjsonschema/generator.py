@@ -297,6 +297,7 @@ class CodeGenerator:
         self.l('')
         with self._resolver.resolving(uri) as definition:
             with self.l('def {}(data, *, root_object=None, root_path=[], special_fields_extractor=None):', name):
+                self.l(f'""" Validation function for: base_uri={self._resolver.base_uri} uri={uri} """')
                 self.l('root_object = (data if root_object is None else root_object)')
                 self.generate_func_code_block(definition, 'data', [], clear_variables=True)
                 self.l('return data')
