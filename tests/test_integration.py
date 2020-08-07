@@ -74,7 +74,7 @@ definition = {
     ),
     (
         [9, 'xxx', [1], {'a': 'a', 'b': 'b', 'c': 'xy'}, 'str', 5],
-        JsonSchemaValidationException('must be one of [\'hello\', \'world\']', value='xxx', _rendered_path='data[1]', definition=definition['items'][1], rule='enum'),
+        JsonSchemaValidationException('must be one of [\'hello\', \'world\'] but is: xxx', value='xxx', _rendered_path='data[1]', definition=definition['items'][1], rule='enum'),
     ),
     (
         [9, 'hello', [], {'a': 'a', 'b': 'b', 'c': 'xy'}, 'str', 5],

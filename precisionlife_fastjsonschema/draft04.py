@@ -107,7 +107,7 @@ class CodeGeneratorDraft04(CodeGenerator):
         if not isinstance(enum, (list, tuple)):
             raise JsonSchemaDefinitionException('enum must be an array')
         with self.l('if {variable} not in {enum}:'):
-            self.exc('must be one of {}', self.e(enum), rule='enum')
+            self.exc('must be one of {} but is: " + str({variable}) + "', self.e(enum), rule='enum')
 
     def generate_all_of(self):
         """
@@ -240,7 +240,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             end_of_string_fixed_pattern = DOLLAR_FINDER.sub(r'\\Z', pattern)
             self._compile_regexps[pattern] = re.compile(end_of_string_fixed_pattern)
             with self.l('if not REGEX_PATTERNS[{}].search({variable}):', repr(pattern)):
-                self.exc('must match pattern {}', safe_pattern, rule='pattern')
+                self.exc('\\"" + {variable} + "\\" does not match pattern \\"{}\\"', safe_pattern, rule='pattern')
 
     def generate_format(self):
         """

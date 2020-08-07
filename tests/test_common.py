@@ -3,13 +3,14 @@ import pytest
 from precisionlife_fastjsonschema import JsonSchemaValidationException
 
 
-exc = JsonSchemaValidationException('must be one of [1, 2, \'a\', "b\'c"]', value='{data}', _rendered_path='data', definition='{definition}', rule='enum')
+exc = JsonSchemaValidationException('must be one of [1, 2, \'a\', "b\'c"] but is: 12', value='{data}', _rendered_path='data', definition='{definition}', rule='enum')
+exc2 = JsonSchemaValidationException('must be one of [1, 2, \'a\', "b\'c"] but is: aa', value='{data}', _rendered_path='data', definition='{definition}', rule='enum')
 @pytest.mark.parametrize('value, expected', [
     (1, 1),
     (2, 2),
     (12, exc),
     ('a', 'a'),
-    ('aa', exc),
+    ('aa', exc2),
 ])
 def test_enum(asserter, value, expected):
     asserter({'enum': [1, 2, 'a', "b'c"]}, value, expected)

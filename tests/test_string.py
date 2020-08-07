@@ -47,13 +47,15 @@ def test_min_length(asserter, value, expected):
     }, value, expected)
 
 
-exc = JsonSchemaValidationException('must match pattern ^[ab]*[^ab]+(c{2}|d)$', value='{data}', _rendered_path='data', definition='{definition}', rule='pattern')
+exc = JsonSchemaValidationException('"" does not match pattern "^[ab]*[^ab]+(c{2}|d)$"', value='{data}', _rendered_path='data', definition='{definition}', rule='pattern')
+exc2 = JsonSchemaValidationException('"aacc" does not match pattern "^[ab]*[^ab]+(c{2}|d)$"', value='{data}', _rendered_path='data', definition='{definition}', rule='pattern')
+exc3 = JsonSchemaValidationException('"aacd\n" does not match pattern "^[ab]*[^ab]+(c{2}|d)$"', value='{data}', _rendered_path='data', definition='{definition}', rule='pattern')
 @pytest.mark.parametrize('value, expected', [
     ('', exc),
-    ('aacc', exc),
+    ('aacc', exc2),
     ('aaccc', 'aaccc'),
     ('aacd', 'aacd'),
-    ('aacd\n', exc),
+    ('aacd\n', exc3),
 ])
 def test_pattern(asserter, value, expected):
     asserter({
