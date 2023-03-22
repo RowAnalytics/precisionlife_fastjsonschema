@@ -2,6 +2,7 @@ import collections
 from collections import OrderedDict
 import re
 import inspect
+from typing import Optional, Any
 
 from .exceptions import JsonSchemaValidationException, JsonSchemaDefinitionException
 from .indent import indent
@@ -397,14 +398,14 @@ class CodeGenerator:
         """
         return str(string).replace('"', '\\"')
 
-    def exc(self, msg, *args, rule=None, missing_fields=None, extra_fields=None):
+    def exc(self, msg, *args, rule=None, missing_fields: Optional[list[str]] = None, extra_fields: Optional[list[str]] = None):
         """
         """
         name_path = prepare_path(self._variable_path)
         msg = 'raise JsonSchemaValidationException("'+msg+'", value={variable}, definition={definition}, rule={rule}, path=root_path + ' + name_path + ', root_object=root_object, special_fields_extractor=special_fields_extractor'
-        if missing_fields:
+        if missing_fields is not None:
             msg += f', missing_fields={missing_fields}'
-        if extra_fields:
+        if extra_fields is not None:
             msg += f', extra_fields={extra_fields}'
         msg += ')'
         self.l(msg, *args, definition=repr(self._definition), rule=repr(rule))

@@ -184,4 +184,4 @@ class CodeGeneratorDraft06(CodeGeneratorDraft04):
         if isinstance(const, str):
             const = '"{}"'.format(const)
         with self.l('if {variable} != {}:', const):
-            self.exc('must be same as const definition', rule='const')
+            self.exc('must be const {} but is: " + str({variable}) + "', self.e(const), rule='const')
