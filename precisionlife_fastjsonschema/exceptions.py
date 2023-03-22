@@ -31,7 +31,7 @@ class JsonSchemaValidationException(JsonSchemaException):
         Added all extra properties.
     """
 
-    def __init__(self, message, value, definition, rule, path=None, root_object=None, special_fields_extractor=None, *, _rendered_path=None, missing_fields=[], extra_fields=[]):
+    def __init__(self, message, value, definition, rule, path=None, root_object=None, special_fields_extractor=None, *, _rendered_path=None, missing_fields=None, extra_fields=None):
         # @todo path, root_object and special_fields_extractor are mandatory, but for tests they are ignored. It should be fixed somehow.
         # @todo Pre-assigned _rendered_path is used only for tests. It should be fixed somehow.
         super().__init__(message)
@@ -43,8 +43,8 @@ class JsonSchemaValidationException(JsonSchemaException):
         self.root_object = root_object  # Root object that was being validated. Used for rendering paths
         self.special_fields_extractor = special_fields_extractor  # Special fields extractor. Used for rendering paths
         self._rendered_path = _rendered_path  # Cache for rendered path. Used to limit rendering only to errors that will actually need that.
-        self.missing_fields = missing_fields   # For 'required-additionalProperties' rule: fields that were required but are not present.
-        self.extra_fields = extra_fields        # For 'required-additionalProperties' rule: fields that were present but not expected.
+        self.missing_fields = missing_fields or []   # For 'required-additionalProperties' rule: fields that were required but are not present.
+        self.extra_fields = extra_fields or []       # For 'required-additionalProperties' rule: fields that were present but not expected.
 
     def __repr__(self):
         if self.rule == 'required-additionalProperties':
