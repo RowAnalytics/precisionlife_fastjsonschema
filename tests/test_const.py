@@ -9,7 +9,11 @@ from precisionlife_fastjsonschema import JsonSchemaValidationException
     (False, False, False),
     ([1, 2, 3], [1, 2, 3], [1, 2, 3]),
 
+    ('foo', 0, JsonSchemaValidationException('must be const "foo" but is: 0', value='{data}', _rendered_path='data', definition='{definition}', rule='const')),
     (42, 0, JsonSchemaValidationException('must be const 42 but is: 0', value='{data}', _rendered_path='data', definition='{definition}', rule='const')),
+    (42, 'foo', JsonSchemaValidationException('must be const 42 but is: foo', value='{data}', _rendered_path='data', definition='{definition}', rule='const')),
+    ('x', 'xz', JsonSchemaValidationException('must be const "x" but is: xz', value='{data}', _rendered_path='data', definition='{definition}', rule='const')),
+    (True, False, JsonSchemaValidationException('must be const True but is: False', value='{data}', _rendered_path='data', definition='{definition}', rule='const')),
 ])
 def test_const(asserter, const, value, expected):
     asserter({
