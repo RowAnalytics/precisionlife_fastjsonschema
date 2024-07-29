@@ -74,7 +74,7 @@ def is_specific_field_error(path, error, field, *, existence_only):
     #        return True
 
     if error.rule == 'propertyNames':
-        raise Exception('@todo Figure out what should be a check here.')
+        raise Exception('@todo Figure out what check should be here.')
 
     return False
 
@@ -94,7 +94,10 @@ def raise_best_anyof_error(data, root_object, root_path, errors, special_fields_
       - did not fail on any discriminator fields
       - allowed all tag fields
       will be assumed to be the right schema, and therefore exception from it will be returned.
-      Additionally if object did not validate an error is returned that says those tag/discriminator fields have invalid values.
+      Additionally, if object did not validate an error is returned that says those tag/discriminator fields have invalid values.
+
+    @note Tag and discriminator fields should only contain fields that should be present in the data object (unless optional).
+          Both can contain optional fields.
 
     It is assumed that tag/discriminator fields are first fields in the schema (this is very week as well, because order of elements in JSON is not preserved...).
     If this is not the case validation will still work, but error messages won't be improved.
