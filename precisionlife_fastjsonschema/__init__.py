@@ -184,21 +184,27 @@ def compile_to_code(definition, handlers={}, formats={}, **resolver_kwargs):
         with open('your_file.py', 'w') as f:
             f.write(code)
 
-    You can also use it as a script:
+        # You can execute the validation like this:
+        spec = importlib.util.spec_from_file_location("temp_module_name", 'your_file.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.validate(obj_dict, ...) # Typically this will be validate() (for validating against the whole thing).
 
-    .. code-block:: bash
-
-        echo "{'type': 'string'}" | python3 -m fastjsonschema > your_file.py
-        python3 -m fastjsonschema "{'type': 'string'}" > your_file.py
+        # Validating maybe should be something like this to be robust in weird cases? Not sure... (would replicate what compile() does).
+        resolver = RefResolver.from_schema(definition, handlers=handlers, **resolver_kwargs)
+        getattr(module, resolver.get_scope_name())(obj_dict, ...)
 
     Exception :any:`JsonSchemaDefinitionException` is raised when generating the
     code fails (bad definition).
     """
-    _, code_generator = _factory(definition, handlers, formats, **resolver_kwargs)
+    resolver, code_generator = _factory(definition, handlers, formats, **resolver_kwargs)
     return (
         'VERSION = "' + VERSION + '"\n' +
         code_generator.global_state_code + '\n' +
-        code_generator.func_code
+        code_generator.func_code + '\n\n\n' +
+        'if __name__ == "__main__":' + '\n' +
+        '    # Example code:' + '\n' +
+        '    ' + resolver.get_scope_name() + '(obj_dict, special_fields_extractor=...)' + '\n'
     )
 
 
