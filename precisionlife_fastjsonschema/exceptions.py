@@ -104,7 +104,7 @@ def render_path(obj, path, special_fields_extractor):
         if len(tag_fields) + len(discriminator_fields) + len(identification_fields) == 0:
             return
 
-        id_fields = discriminator_fields + identification_fields
+        id_fields = [field for field in discriminator_fields if field in o] + [field for field in identification_fields if field in o]
         id_data = ["{}={}".format(field, o[field]) for field in id_fields]
         result += "<"
         result += ",".join(tag_fields + id_data)

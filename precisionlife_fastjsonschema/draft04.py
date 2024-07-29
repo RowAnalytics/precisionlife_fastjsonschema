@@ -159,7 +159,7 @@ class CodeGeneratorDraft04(CodeGenerator):
             self.create_variable_is_dict()
             #with self.l('if special_fields_extractor and {variable}_is_dict:'):
             name_path = prepare_path(self._variable_path)
-            self.l('raise_best_anyof_error(data, root_object, root_path + ' + name_path + ', {variable}_errors, special_fields_extractor, {definition})', definition=repr(self._definition))
+            self.l('raise_best_anyof_error({variable}, root_object, root_path + ' + name_path + ', {variable}_errors, special_fields_extractor, {definition})', definition=repr(self._definition))
             #self.exc('must be valid by one of anyOf definition. Candidates:\n  -- " + "\n  -- ".join(str(error) for error in {variable}_errors) + "', rule='anyOf')
 
     def generate_one_of(self):
