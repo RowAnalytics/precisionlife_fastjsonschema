@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
-from urllib.request import urlopen
+import requests
 
 from precisionlife_fastjsonschema import RefResolver, JsonSchemaValidationException, compile, _get_code_generator_class
 
@@ -26,9 +26,13 @@ REMOTES = {
 def remotes_handler(uri):
     if uri in REMOTES:
         return REMOTES[uri]
-    req = urlopen(uri)
-    encoding = req.info().get_content_charset() or 'utf-8'
-    return json.loads(req.read().decode(encoding),)
+
+    # Original code was using urlopen(), but it resulted in HTTPError 403 Forbidden. No idea why. Requests handle it fine.
+    response = requests.get(uri)
+    response.raise_for_status()  # optional but recommended
+
+    encoding = response.encoding or 'utf-8'
+    return json.loads(response.content.decode(encoding))
 
 
 def resolve_param_values_and_ids(schema_version, suite_dir, ignored_suite_files=[], ignore_tests=[]):

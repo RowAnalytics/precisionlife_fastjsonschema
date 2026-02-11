@@ -30,6 +30,7 @@ setup(
             'pytest-benchmark',
             'pytest-cache',
             'validictory',
+            'requests',
         ],
     },
 
