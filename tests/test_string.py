@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 from precisionlife_fastjsonschema import JsonSchemaValidationException
@@ -76,13 +78,12 @@ def test_pattern_with_space(asserter, pattern):
 
 
 def test_pattern_with_escape_no_warnings(asserter):
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
         asserter({
             'type': 'string',
             'pattern': '\\s'
         }, ' ', ' ')
-
-    assert len(record) == 0
 
 
 exc = JsonSchemaValidationException('must be a valid regex', value='{data}', _rendered_path='data', definition='{definition}', rule='format')

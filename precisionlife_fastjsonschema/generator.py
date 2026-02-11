@@ -117,19 +117,21 @@ def raise_best_anyof_error(data, root_object, root_path, errors, special_fields_
         if is_fundamental_error(root_path, error):
             continue
 
+        allowed_fields: list[bool] = []
+
         # If object has tag fields, and tag fields are allowed by schema, we raise this error.
         # @note This doesn't work tool well, because we get only first error from subschema, not all of errors.
         #       Will try to improve if needed.
         if len(tag_fields) > 0:
-            allowed_fields = [not is_specific_field_error(root_path, error, tag_field, existence_only=True) for tag_field in tag_fields]
-            if all(allowed_fields):
-                raise error
+            allowed_fields += [not is_specific_field_error(root_path, error, tag_field, existence_only=True) for tag_field in tag_fields]
 
         # If object has discriminator fields, and there were no errors on discriminator fields, we raise this error.
         if len(discriminator_fields) > 0:
-            allowed_fields = [not is_specific_field_error(root_path, error, discriminator_field, existence_only=False) for discriminator_field in discriminator_fields]
-            if all(allowed_fields):
-                raise error
+            allowed_fields += [not is_specific_field_error(root_path, error, discriminator_field, existence_only=False) for discriminator_field in discriminator_fields]
+
+        # If both tag and discriminator fields are matching, we raise this error.
+        if (len(allowed_fields) > 0) and all(allowed_fields):
+            raise error
 
     # If object has tag fields, we know those were not accepted by any schema, so we raise an error for a tag field.
     if len(tag_fields) > 0:
