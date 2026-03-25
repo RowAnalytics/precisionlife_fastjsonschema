@@ -135,11 +135,11 @@ def raise_best_anyof_error(data, root_object, root_path, errors, special_fields_
 
     # If object has tag fields, we know those were not accepted by any schema, so we raise an error for a tag field.
     if len(tag_fields) > 0:
-        raise JsonSchemaValidationException('tag fields not recognized', data, definition, 'unknownTags', root_path, root_object, special_fields_extractor)
+        raise JsonSchemaValidationException(f'tag fields {tag_fields} present, but not accepted by any schema', data, definition, 'unknownTags', root_path, root_object, special_fields_extractor)
 
     # If object has any discriminator fields, we know those were not accepted by any schema, so complain that discriminators were not matched.
     if len(discriminator_fields) > 0:
-        raise JsonSchemaValidationException('discriminator fields not recognized', data, definition, 'badDiscriminators', root_path, root_object, special_fields_extractor)
+        raise JsonSchemaValidationException(f'discriminator fields {discriminator_fields} present, but not accepted by any schema', data, definition, 'badDiscriminators', root_path, root_object, special_fields_extractor)
 
     best_error = max(errors, key=lambda exc: len(exc.path))
     raise best_error
