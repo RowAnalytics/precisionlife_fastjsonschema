@@ -1,3 +1,8 @@
+=== 3.0.0 (2026-06-22)
+
+* Initial release of `precisionlife_fastjsonschema`, forked from `fastjsonschema`.
+
+
 === 2.14.4 (2020-03-19)
 
 * Fix $id property
